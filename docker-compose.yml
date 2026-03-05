@@ -1,0 +1,162 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: news-app-postgres
+    environment:
+      POSTGRES_DB: news_app
+      POSTGRES_USER: news_admin
+      POSTGRES_PASSWORD: news_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U news_admin -d news_app"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    container_name: news-app-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api-gateway:
+    build:
+      context: ./services/api-gateway
+      dockerfile: Dockerfile
+    container_name: news-app-gateway
+    ports:
+      - "4000:4000"
+    environment:
+      NODE_ENV: development
+      NEWS_API_URL: http://news-api:4001
+      USER_API_URL: http://user-api:4002
+      ADMIN_API_URL: http://admin-api:4003
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET:-dev_jwt_secret}
+    depends_on:
+      - redis
+
+  news-api:
+    build:
+      context: ./services/news-api
+      dockerfile: Dockerfile
+    container_name: news-app-news-api
+    ports:
+      - "4001:4001"
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://news_admin:news_password@postgres:5432/news_app
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  user-api:
+    build:
+      context: ./services/user-api
+      dockerfile: Dockerfile
+    container_name: news-app-user-api
+    ports:
+      - "4002:4002"
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://news_admin:news_password@postgres:5432/news_app
+      JWT_SECRET: ${JWT_SECRET:-dev_jwt_secret}
+      JWT_EXPIRES_IN: 7d
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  admin-api:
+    build:
+      context: ./services/admin-api
+      dockerfile: Dockerfile
+    container_name: news-app-admin-api
+    ports:
+      - "4003:4003"
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://news_admin:news_password@postgres:5432/news_app
+      JWT_SECRET: ${JWT_SECRET:-dev_jwt_secret}
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  rss-fetcher:
+    build:
+      context: ./services/rss-fetcher
+      dockerfile: Dockerfile
+    container_name: news-app-rss-fetcher
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://news_admin:news_password@postgres:5432/news_app
+      NEWS_API_URL: http://news-api:4001
+      CRON_SCHEDULE: "*/15 * * * *"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      news-api:
+        condition: service_started
+
+  api-fetcher:
+    build:
+      context: ./services/api-fetcher
+      dockerfile: Dockerfile
+    container_name: news-app-api-fetcher
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://news_admin:news_password@postgres:5432/news_app
+      NEWS_API_URL: http://news-api:4001
+      CRON_SCHEDULE: "0 * * * *"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      news-api:
+        condition: service_started
+
+  scheduler:
+    build:
+      context: ./services/scheduler
+      dockerfile: Dockerfile
+    container_name: news-app-scheduler
+    environment:
+      NODE_ENV: development
+      REDIS_URL: redis://redis:6379
+      RSS_FETCHER_URL: http://rss-fetcher:4004
+      API_FETCHER_URL: http://api-fetcher:4005
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: news-app-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+      NEXT_PUBLIC_API_URL: http://localhost:4000
+    depends_on:
+      - api-gateway
+
+volumes:
+  postgres_data:
+  redis_data:
