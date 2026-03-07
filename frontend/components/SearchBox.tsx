@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Search as SearchIcon } from 'lucide-react'
 
 interface SearchBoxProps {
@@ -8,13 +9,17 @@ interface SearchBoxProps {
 }
 
 export default function SearchBox({ onSearch }: SearchBoxProps) {
+  const router = useRouter()
   const [query, setQuery] = useState('')
   const [isFocused, setIsFocused] = useState(false)
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (query.trim() && onSearch) {
-      onSearch(query.trim())
+    if (query.trim()) {
+      router.push(`/search?q=${encodeURIComponent(query.trim())}`)
+      if (onSearch) {
+        onSearch(query.trim())
+      }
     }
   }
 
