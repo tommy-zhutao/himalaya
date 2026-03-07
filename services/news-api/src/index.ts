@@ -1,47 +1,73 @@
-import express from 'express';
-import cors from 'cors';
-import dotenv from 'dotenv';
+import express from 'express'
+import cors from 'cors'
+import dotenv from 'dotenv'
+import newsRoutes from './routes/news.routes'
+import { prisma } from './lib/prisma'
 
-dotenv.config();
+// Load environment variables
+dotenv.config()
 
-const app = express();
-const PORT = process.env.PORT || 4001;
+const app = express()
+const PORT = process.env.PORT || 4001
 
 // Middleware
-app.use(cors());
-app.use(express.json());
+app.use(cors())
+app.use(express.json())
+app.use(express.urlencoded({ extended: true }))
 
-// Health check endpoint
+// Request logging
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`)
+  next()
+})
+
+// Health check
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', service: 'news-api', timestamp: new Date().toISOString() });
-});
+  res.json({ status: 'ok', service: 'news-api', timestamp: new Date().toISOString() })
+})
 
-// News routes
-app.get('/api/news', (req, res) => {
-  const { page = 1, limit = 20, category, sort } = req.query;
-  res.json({
-    news: [],
-    page: parseInt(page as string),
-    limit: parseInt(limit as string),
-    total: 0,
-    filters: { category, sort }
-  });
-});
+// Routes
+app.use('/api/news', newsRoutes)
 
-// Get news by ID
-app.get('/api/news/:id', (req, res) => {
-  const { id } = req.params;
-  res.json({ id, title: 'News Title', content: 'News content...' });
-});
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({ error: 'Not found' })
+})
 
-// Search news
-app.get('/api/news/search', (req, res) => {
-  const { q } = req.query;
-  res.json({ results: [], query: q });
-});
+// Error handler
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error('Error:', err)
+  res.status(err.status || 500).json({ error: err.message || 'Internal server error' })
+})
 
 // Start server
-app.listen(PORT, () => {
-  console.log(`News API service running on port ${PORT}`);
-  console.log(`Health check: http://localhost:${PORT}/health`);
-});
+async function start() {
+  try {
+    // Test database connection
+    await prisma.$connect()
+    console.log('✅ Database connected')
+
+    app.listen(PORT, () => {
+      console.log(`🚀 News API Service running on port ${PORT}`)
+      console.log(`📊 Health check: http://localhost:${PORT}/health`)
+    })
+  } catch (error) {
+    console.error('❌ Failed to start server:', error)
+    process.exit(1)
+  }
+}
+
+// Graceful shutdown
+process.on('SIGTERM', async () => {
+  console.log('SIGTERM received, shutting down gracefully...')
+  await prisma.$disconnect()
+  process.exit(0)
+})
+
+process.on('SIGINT', async () => {
+  console.log('SIGINT received, shutting down gracefully...')
+  await prisma.$disconnect()
+  process.exit(0)
+})
+
+start()
