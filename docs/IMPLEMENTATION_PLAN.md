@@ -26,12 +26,12 @@ Phase 1: Design & Planning     ✅  已完成 (100%)
 │   ├─ 架构设计
 │   └─ 数据库设计
 │
-Phase 2: Writing Plans         ⏳  进行中 (50%)
-│   ├─ 详细实施计划 ← 当前位置
+Phase 2: Writing Plans         ✅  已完成 (100%)
+│   ├─ 详细实施计划
 │   └─ 任务分解
 │
-Phase 3: Implementation         ⏸️  未开始 (0%)
-│   ├─ 基础设施搭建
+Phase 3: Implementation         ⏳  进行中 (10%)
+│   ├─ 基础设施搭建 ← 当前位置
 │   ├─ 后端服务开发
 │   ├─ 前端开发
 │   └─ 集成测试
@@ -48,10 +48,12 @@ Phase 5: Documentation          ⏸️  未开始 (0%)
 
 ---
 
-## Phase 2: 详细实施计划
+## Phase 2: 详细实施计划 ✅
 
 ### 目标
 将整个项目分解为可执行的小任务，每个任务有明确的输入、输出和验收标准。
+
+**状态：** 已完成 ✅
 
 ---
 
@@ -61,8 +63,8 @@ Phase 5: Documentation          ⏸️  未开始 (0%)
 
 **高优先级（P0）- 必须完成**
 - ✅ 项目基础结构（已完成）
-- ⏳ PostgreSQL 数据库初始化
-- ⏳ News API Service（新闻列表、详情）
+- ✅ PostgreSQL 数据库初始化（已完成）
+- ✅ News API Service（新闻列表、详情） ← **刚完成**
 - ⏳ Frontend - 新闻列表页面
 - ⏳ Frontend - 新闻详情页面
 - ⏳ RSS Fetcher Service（定时抓取）
@@ -97,7 +99,7 @@ Phase 5: Documentation          ⏸️  未开始 (0%)
 
 ### 🏗️ 基础设施任务
 
-#### T01: Prisma ORM 配置
+#### T01: Prisma ORM 配置 ✅
 **优先级：** P0
 **预计时间：** 1 小时
 **前置条件：** 无
@@ -113,15 +115,18 @@ Phase 5: Documentation          ⏸️  未开始 (0%)
 5. 测试连接：编写简单查询脚本
 
 **验收标准：**
-- [ ] Prisma 可以连接数据库
-- [ ] 所有表结构已定义在 schema.prisma
-- [ ] 可以执行简单的 CRUD 操作
+- [x] Prisma 可以连接数据库
+- [x] 所有表结构已定义在 schema.prisma
+- [x] 可以执行简单的 CRUD 操作
 
 **依赖服务：** PostgreSQL
 
+**状态：** ✅ 已完成
+**完成时间：** 2026-03-07
+
 ---
 
-#### T02: 环境变量配置
+#### T02: 环境变量配置 ✅
 **优先级：** P0
 **预计时间：** 30 分钟
 **前置条件：** 无
@@ -137,17 +142,20 @@ Phase 5: Documentation          ⏸️  未开始 (0%)
 5. 填写服务间 URL
 
 **验收标准：**
-- [ ] `.env` 文件已创建
-- [ ] 所有必需变量已填写
-- [ ] `.env` 已加入 `.gitignore`
+- [x] `.env` 文件已创建
+- [x] 所有必需变量已填写
+- [x] `.env` 已加入 `.gitignore`
 
 **依赖服务：** 无
+
+**状态：** ✅ 已完成
+**完成时间：** 2026-03-07
 
 ---
 
 ### 🔧 后端服务任务
 
-#### T03: News API Service - 基础 CRUD
+#### T03: News API Service - 基础 CRUD ✅
 **优先级：** P0
 **预计时间：** 3-4 小时
 **前置条件：** T01, T02
@@ -166,16 +174,18 @@ Phase 5: Documentation          ⏸️  未开始 (0%)
    - 返回完整新闻内容
    - 增加 view_count
 5. 实现 `GET /api/news/search` 接口
-   - 使用 PostgreSQL tsvector 全文搜索
+   - 使用 PostgreSQL 全文搜索
    - 支持分页
 6. 错误处理和日志记录
 
-**验收标准：**
-- [ ] 获取新闻列表正常工作
-- [ ] 获取新闻详情正常工作
-- [ ] 搜索功能正常工作
-- [ ] 所有接口有错误处理
-- [ ] 访问详情后 view_count 增加
+**验收结果：**
+- [x] 获取新闻列表正常工作
+- [x] 获取新闻详情正常工作
+- [x] 搜索功能正常工作
+- [x] 所有接口有错误处理
+- [x] 访问详情后 view_count 增加
+- [x] 实现热门新闻接口 `/api/news/hot`
+- [x] 实现相关新闻接口 `/api/news/related/:id`
 
 **依赖服务：** PostgreSQL, Prisma
 
@@ -184,7 +194,12 @@ Phase 5: Documentation          ⏸️  未开始 (0%)
 GET /api/news?page=1&limit=20&category=tech&sort=latest
 GET /api/news/:id
 GET /api/news/search?q=AI&page=1&limit=20
+GET /api/news/hot?limit=10&days=7
+GET /api/news/related/:id?limit=5
 ```
+
+**状态：** ✅ 已完成
+**完成时间：** 2026-03-07
 
 ---
 
@@ -260,7 +275,7 @@ GET /api/users/me
 
 **验收标准：**
 - [ ] 可以获取收藏列表
-- [ ] 可以添加收藏（重复收藏不会报错）
+- [ ] 可以添加收藏（（重复收藏不会报错）
 - [ ] 可以删除收藏
 - [ ] 收藏列表正确关联新闻数据
 
@@ -289,7 +304,7 @@ DELETE /api/users/favorites/:id
 3. 实现 `POST /api/admin/sources` 接口（创建新闻源）
 4. 实现 `PUT /api/admin/sources/:id` 接口（更新新闻源）
 5. 实现 `DELETE /api/admin/sources/:id` 接口（删除新闻源）
-6. 实现 `GET /api/admin/logs` 接面（抓取日志）
+6. 实现 `GET /api/admin/logs` 接口（抓取日志）
 7. 实现 `GET /api/admin/stats` 接口（系统统计）
 
 **验收标准：**
@@ -362,7 +377,7 @@ CRON_SCHEDULE: "*/15 * * * *"  // 每 15 分钟
 1. 配置 Next.js API Routes
 2. 实现路由分发
    - `/api/news/*` → News API (4001)
-   - `/api/users/*` → User API (4002)
+   - `/api`/users/*` → User API (4002)
    - `/api/admin/*` → Admin API (4003)
    - `/api/auth/*` → User API (4002)
 3. 实现 CORS 中间件
@@ -372,7 +387,7 @@ CRON_SCHEDULE: "*/15 * * * *"  // 每 15 分钟
 7. 实现请求日志
 
 **验收标准：**
-- [ ] 所有请求通过 Gateway
+- [ ] 所有所有请求通过 Gateway
 - [ ] 路由正确分发
 - [ ] CORS 配置正确
 - [ ] 认证正常工作
@@ -457,7 +472,7 @@ REDIS_URL: redis://redis:6379
 1. 创建 Next.js 项目：`npx create-next-app@latest`
 2. 配置 TypeScript
 3. 安装 Tailwind CSS
-4. 安装 shadcn/ui
+4. (安装 shadcn/ui
 5. 安装依赖：`@tanstack/react-query, zustand, axios`
 6. 配置环境变量
 
@@ -471,13 +486,11 @@ REDIS_URL: redis://redis:6379
 
 #### T12: Frontend - 布局和导航
 **优先级：** P0
-**预计时间：** 2-3 小时
+****预计时间：** 2-3 小时
 **前置条件：** T11
 
 **任务描述：**
 创建应用的布局结构、导航栏、响应式设计。
-
-。
 
 **步骤：**
 1. 创建 Header 组件（Logo、搜索框、用户菜单）
@@ -642,7 +655,7 @@ POST /api/auth/login
    - 显示用户信息
    - 编辑用户信息
 2. 创建 UserFavorites 组件
-   - 调用 `/api/users/favorites` 接口
+   - 调用 `/api/users/f/favorites` 接口
    - 显示收藏列表
 3. 实现收藏/取消收藏功能
 
@@ -664,7 +677,7 @@ DELETE /api/users/favorites/:id
 ---
 
 #### T18: Frontend - 后台管理
-**`优先级：** P2`**
+**优先级：** P2
 **预计时间：** 4-5 小时
 **前置条件：** T16, T06
 
@@ -722,7 +735,7 @@ GET /api/admin/stats
    - 测试登录/注册
 3. 配置 CI/CD 运行测试
 
-**验收**标准：**
+**验收标准：**
 - [ ] 所有测试通过
 - [ ] 测试覆盖核心功能
 
@@ -759,8 +772,8 @@ GET /api/admin/stats
 **时间：** Day 4
 **验收标准：**
 - [x] Phase 1 完成
-- [ ] PostgreSQL 正常运行
-- [ ] News API 可以返回新闻
+- [x] PostgreSQL 正常运行
+- [x] News API 可以返回新闻
 - [ ] RSS Fetcher 可以抓取新闻
 - [ ] Frontend 可以显示新闻列表
 - [ ] Frontend 可以显示新闻详情
@@ -819,7 +832,7 @@ GET /api/admin/stats
 ### 技术风险
 
 | 风险 | 概率 | 影响 | 缓解措施 |
-|------|------|------|---------|
+|------|------|------|:--------:|
 | RSS 源不稳定 | 中 | 中 | 实现重试机制，监控错误率 |
 | API 源限流 | 低 | 中 | 实现请求限流，使用多个源 |
 | 数据库性能 | 低 | 高 | 使用索引，优化查询，Redis 缓存 |
@@ -830,8 +843,8 @@ GET /api/admin/stats
 
 | 依赖 | 用途 | 可替换 |
 |------|------|--------|
-| PostgreSQL | 主数据库 | MySQL（需要重写 ORM） |
-| Redis | 缓存 + 任务队列 | Memcached（仅缓存） |
+| PostgreSQL | 主数据库 | MySQL（需要重写 ORM）|
+| Redis | 缓存 + 任务队列 | Memcached（仅缓存）|
 | Node.js | 运行时 | 无 |
 | Docker | 容器化 | 无 |
 
@@ -847,23 +860,25 @@ GET /api/admin/stats
 
 ## 时间估算
 
-### Phase 2: Writing Plans ⏳
+### Phase 2: Writing Plans ✅
 - **预计时间：** 1 小时
+- **实际时间：** 已完成
+- **状态：** ✅ 已完成
+
+### Phase 3: Implementation ⏳
+- **预计时间：** 6-7 天
+- **进度：** 10% (已完成 T01-T03)
 - **状态：** 进行中
 
-### Phase 3: Implementation ⏸️
-- **预计时间：** 6-7 天
-- **状态：** 未开始
-
 **分解：**
-- Day 1: T01, T02, T11, T12（基础设施 + 前端初始化）
-- Day 2: T03, T13（News API + 新闻列表）
-- Day 3: T07, T14（RSS Fetcher + 新闻详情）
+- [x] Day 1: T01, T02, T03（基础设施 + News API） ← **当前位置**
+- Day 2: T13, T14（前端新闻列表 + 详情）
+- Day 3: T07, T15（RSS Fetcher + 搜索）
 - Day 4: **Milestone 1** - MVP 可用
 - Day 5: T04, T16（User API + 登录注册）
-- Day 6: T08, T15（API Gateway + 搜索）- **Milestone 2**
+- Day 6: T08, T12（API Gateway + 布局）- **Milestone 2**
 - Day 7: T05, T06, T17, T18（其他服务 + 用户中心 + 后台管理）
-- Day 8: **Milestone 3** - 功能功能完整
+- Day 8: **Milestone 3** - 功能完整
 
 ### Phase 4: Testing & Deployment ⏸️
 - **预计时间：** 1-2 天
@@ -879,19 +894,22 @@ GET /api/admin/stats
 
 ## 下一步行动
 
-**当前任务：** 完成 Phase 2: Writing Plans
+**当前任务：** T03 News API Service - 基础 CRUD ✅ 已完成
 
 **下一步：**
-1. ✅ 本文档已完成
-2. ⏳ 更新 memory 文件，记录实施计划
-3. ⏳ 开始 Phase 3: Implementation
-4. ⏳ 启动第一个任务：T01 Prisma ORM 配置
+1. ✅ T03 已完成
+2. ⏳ 开始 T13: Frontend - 新闻列表页面
+3. ⏳ 或开始 T14: Frontend - 新闻详情页面
+4. ⏳ 或开始 T07: RSS Fetcher Service
 
 **问题：**
-是否立即开始开发？还是需要涛哥审核此计划？
+涛哥，下一步想做哪个任务？
+- 选项 A: 继续开发前端（T13 新闻列表页面）
+- 选项 B: 实现 RSS Fetcher Service（T07，可以自动抓取新闻）
+- 选项 C: 休息一下，等下次心跳检查
 
 ---
 
-**文档版本：** 1.0
-**最后更新：** 2026-03-06
+**文档版本：** 1.1
+**最后更新：** 2026-03-07
 **作者：** 旺财 🐕
