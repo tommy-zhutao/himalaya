@@ -1,0 +1,13 @@
+✅ Database connected
+🚀 User API Service running on port 4002
+📊 Health check: http://localhost:4002/health
+[2026-03-07T13:58:58.626Z] GET /health
+[2026-03-07T13:59:15.697Z] POST /api/auth/register
+prisma:query SELECT 1
+prisma:query SELECT "public"."users"."id", "public"."users"."email", "public"."users"."username", "public"."users"."password_hash", "public"."users"."avatar_url", "public"."users"."preferences", "public"."users"."role", "public"."users"."is_active", "public"."users"."created_at", "public"."users"."updated_at", "public"."users"."last_login_at" FROM "public"."users" WHERE ("public"."users"."email" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query SELECT "public"."users"."id", "public"."users"."email", "public"."users"."username", "public"."users"."password_hash", "public"."users"."avatar_url", "public"."users"."preferences", "public"."users"."role", "public"."users"."is_active", "public"."users"."created_at", "public"."users"."updated_at", "public"."users"."last_login_at" FROM "public"."users" WHERE ("public"."users"."username" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query INSERT INTO "public"."users" ("email","username","password_hash","preferences","role","is_active","created_at","updated_at") VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING "public"."users"."id", "public"."users"."email", "public"."users"."username", "public"."users"."password_hash", "public"."users"."avatar_url", "public"."users"."preferences", "public"."users"."role", "public"."users"."is_active", "public"."users"."created_at", "public"."users"."updated_at", "public"."users"."last_login_at"
+[2026-03-07T13:59:32.545Z] POST /api/auth/login
+prisma:query SELECT 1
+prisma:query SELECT "public"."users"."id", "public"."users"."email", "public"."users"."username", "public"."users"."password_hash", "public"."users"."avatar_url", "public"."users"."preferences", "public"."users"."role", "public"."users"."is_active", "public"."users"."created_at", "public"."users"."updated_at", "public"."users"."last_login_at" FROM "public"."users" WHERE ("public"."users"."email" = $1 AND 1=1) LIMIT $2 OFFSET $3
+prisma:query UPDATE "public"."users" SET "last_login_at" = $1, "updated_at" = $2 WHERE ("public"."users"."id" = $3 AND 1=1) RETURNING "public"."users"."id", "public"."users"."email", "public"."users"."username", "public"."users"."password_hash", "public"."users"."avatar_url", "public"."users"."preferences", "public"."users"."role", "public"."users"."is_active", "public"."users"."created_at", "public"."users"."updated_at", "public"."users"."last_login_at"

@@ -1,40 +1,77 @@
-import express from 'express';
-import cors from 'cors';
-import dotenv from 'dotenv';
+import express from 'express'
+import cors from 'cors'
+import dotenv from 'dotenv'
+import { prisma } from './lib/prisma'
+import authRoutes from './routes/auth.routes'
 
-dotenv.config();
+// Load environment variables
+dotenv.config()
 
-const app = express();
-const PORT = process.env.PORT || 4002;
+const app = express()
+const PORT = process.env.PORT || 4002
 
 // Middleware
-app.use(cors());
-app.use(express.json());
+app.use(cors())
+app.use(express.json())
+
+// Request logging
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`)
+  next()
+})
 
 // Health check
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', service: 'user-api', timestamp: new Date().toISOString() });
-});
+  res.json({
+    status: 'ok',
+    service: 'user-api',
+    timestamp: new Date().toISOString(),
+  })
+})
 
-// Auth routes
-app.post('/api/auth/register', (req, res) => {
-  res.json({ message: 'User registration endpoint' });
-});
+// Routes
+app.use('/api/auth', authRoutes)
 
-app.post('/api/auth/login', (req, res) => {
-  res.json({ message: 'User login endpoint' });
-});
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({ error: 'Not found' })
+})
 
-app.post('/api/auth/refresh', (req, res) => {
-  res.json({ message: 'Token refresh endpoint' });
-});
+// Error handler
+app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  console.error('Error:', err)
+  res.status(err.status || 500).json({ error: err.message || 'Internal server error' })
+})
 
-// User routes
-app.get('/api/users/me', (req, res) => {
-  res.json({ message: 'Get current user endpoint' });
-});
+// Start server
+async function start() {
+  try {
+    // Test database connection
+    await prisma.$connect()
+    console.log('✅ Database connected')
 
-app.listen(PORT, () => {
-  console.log(`User API service running on port ${PORT}`);
-  console.log(`Health check: http://localhost:${PORT}/health`);
-});
+    // Start HTTP server
+    app.listen(PORT, () => {
+      console.log(`🚀 User API Service running on port ${PORT}`)
+      console.log(`📊 Health check: http://localhost:${PORT}/health`)
+    })
+  } catch (error) {
+    console.error('❌ Failed to start server:', error)
+    process.exit(1)
+  }
+}
+
+// Graceful shutdown
+process.on('SIGTERM', async () => {
+  console.log('SIGTERM received, shutting down gracefully...')
+  await prisma.$disconnect()
+  process.exit(0)
+})
+
+process.on('SIGINT', async () => {
+  console.log('SIGINT received, shutting down gracefully...')
+  await prisma.$disconnect()
+  process.exit(0)
+})
+
+start()

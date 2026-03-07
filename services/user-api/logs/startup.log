@@ -1,0 +1,19 @@
+/root/.openclaw/workspace/news-app/services/user-api/node_modules/ts-node/src/index.ts:859
+    return new TSError(diagnosticText, diagnosticCodes, diagnostics);
+           ^
+TSError: ⨯ Unable to compile TypeScript:
+src/routes/auth.routes.ts(74,9): error TS2353: Object literal may only specify known properties, and 'password' does not exist in type '(Without<UserCreateInput, UserUncheckedCreateInput> & UserUncheckedCreateInput) | (Without<...> & UserCreateInput)'.
+src/routes/auth.routes.ts(138,58): error TS2339: Property 'password' does not exist on type '{ email: string; username: string; id: number; passwordHash: string; avatarUrl: string | null; preferences: JsonValue; role: string; isActive: boolean; createdAt: Date; updatedAt: Date; lastLoginAt: Date | null; }'.
+
+    at createTSError (/root/.openclaw/workspace/news-app/services/user-api/node_modules/ts-node/src/index.ts:859:12)
+    at reportTSError (/root/.openclaw/workspace/news-app/services/user-api/node_modules/ts-node/src/index.ts:863:19)
+    at getOutput (/root/.openclaw/workspace/news-app/services/user-api/node_modules/ts-node/src/index.ts:1077:36)
+    at Object.compile (/root/.openclaw/workspace/news-app/services/user-api/node_modules/ts-node/src/index.ts:1433:41)
+    at Module.m._compile (/root/.openclaw/workspace/news-app/services/user-api/node_modules/ts-node/src/index.ts:1617:30)
+    at node:internal/modules/cjs/loader:1839:10
+    at Object.require.extensions.<computed> [as .ts] (/root/.openclaw/workspace/news-app/services/user-api/node_modules/ts-node/src/index.ts:1621:12)
+    at Module.load (node:internal/modules/cjs/loader:1441:32)
+    at Function._load (node:internal/modules/cjs/loader:1263:12)
+    at TracingChannel.traceSync (node:diagnostics_channel:328:14) {
+  diagnosticCodes: [ 2353, 2339 ]
+}
