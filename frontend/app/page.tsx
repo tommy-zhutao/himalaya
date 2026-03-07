@@ -1,167 +1,140 @@
 'use client'
 
 import { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { getNews } from '@/lib/news'
-import NewsCard from '@/components/NewsCard'
-import { Loader2, RefreshCw, Filter } from 'lucide-react'
+import NewsList from '@/components/NewsList'
+import SearchBox from '@/components/SearchBox'
+import CategoryFilter from '@/components/CategoryFilter'
+import { RefreshCw } from 'lucide-react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+
+// Create QueryClient outside component to avoid recreating on every render
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+    },
+  },
+})
 
 export default function HomePage() {
-  const [page, setPage] = useState(1)
-  const [category, setCategory] = useState<string>('')
+  const [category, setCategory] = useState<string | undefined>()
   const [sort, setSort] = useState<'latest' | 'hot'>('latest')
+  const [key, setKey] = useState(0) // Key to force refetch
 
-  // Fetch news
-  const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['news', page, category, sort],
-    queryFn: () => getNews({ page, limit: 12, category: category || undefined, sort }),
-  })
+  const handleSearch = (query: string) => {
+    console.log('Search query:', query)
+    // TODO: Implement search functionality with SearchBox component
+    // For now, just refresh list
+    setKey((prev) => prev + 1)
+  }
+
+  const handleRefresh = () => {
+    setKey((prev) => prev + 1)
+  }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-bold text-gray-900 cursor-pointer" onClick={() => {
-              setPage(1)
-              setCategory('')
-            }}>
-              📰 AI News Hub
-            </h1>
-
-            <div className="flex items-center gap-3">
-              {/* Sort */}
-              <select
-                value={sort}
-                onChange={(e) => setSort(e.target.value as 'latest' | 'hot')}
-                className="px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="latest">最新</option>
-                <option value="hot">热门</option>
-              </select>
-
-              {/* Refresh */}
-              <button
-                onClick={() => refetch()}
-                disabled={isLoading}
-                className="p-2 text-gray-600 hover:text-blue-600 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
-              >
-                <RefreshCw size={20} className={isLoading ? 'animate-spin' : ''} />
-              </button>
-            </div>
-          </div>
-
-          {/* Category Filter */}
-          <div className="flex items-center gap-2 mt-4 overflow-x-auto pb-2">
-            <span className="flex items-center gap-1 text-sm text-gray-500">
-              <Filter size={16} />
-              分类：
-            </span>
-            <button
-              onClick={() => setCategory('')}
-              className={`px-3 py-1 text-sm rounded-full transition-colors ${
-                category === ''
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              全部
-            </button>
-            {['technology', 'blockchain', 'cloud'].map((cat) => (
-              <button
-                key={cat}
-                onClick={() => {
-                  setCategory(cat)
-                  setPage(1)
-                }}
-                className={`px-3 py-1 text-sm rounded-full transition-colors whitespace-nowrap ${
-                  category === cat
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                {cat}
-              </button>
-            ))}
-          </div>
-        </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-4 py-8">
-        {/* Loading State */}
-        {isLoading && (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 size={40} className="text-blue-600 animate-spin" />
-            <span className="ml-3 text-gray-600">加载中...</span>
-          </div>
-        )}
-
-        {/* Error State */}
-        {error && (
-          <div className="text-center py-12">
-            <p className="text-red-600 mb-4">加载失败，请重试</p>
-            <button
-              onClick={() => refetch()}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              重试
-            </button>
-          </div>
-        )}
-
-        {/* News List */}
-        {data && !isLoading && (
-          <>
-            {data.data.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-gray-500">暂无新闻</p>
+    <QueryClientProvider client={queryClient}>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
+        {/* Header */}
+        <header className="bg-white/80 backdrop-blur-md shadow-sm sticky top-0 z-50">
+          <div className="max-w-7xl mx-auto px-4 py-4">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                  📰
+                  <span>AI News Hub</span>
+                </h1>
+                <p className="text-sm text-gray-500 mt-1">
+                  智能新闻聚合平台
+                </p>
               </div>
-            ) : (
-              <>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {data.data.map((news) => (
-                    <NewsCard key={news.id} news={news} />
-                  ))}
+
+              <div className="flex items-center gap-3">
+                {/* Sort Toggle */}
+                <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
+                  <button
+                    onClick={() => setSort('latest')}
+                    className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${
+                      sort === 'latest'
+                        ? 'bg-white text-blue-600 shadow-sm'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    最新
+                  </button>
+                  <button
+                    onClick={() => setSort('hot')}
+                    className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${
+                      sort === 'hot'
+                        ? 'bg-white text-red-600 shadow-sm'
+                        : 'text-gray-600 hover:text-gray-900'
+                    }`}
+                  >
+                    热门
+                  </button>
                 </div>
 
-                {/* Pagination */}
-                {data.pagination.totalPages > 1 && (
-                  <div className="flex items-center justify-center gap-2 mt-12">
-                    <button
-                      onClick={() => setPage(page - 1)}
-                      disabled={!data.pagination.hasPrev}
-                      className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                      上一页
-                    </button>
+                {/* Refresh Button */}
+                <button
+                  onClick={handleRefresh}
+                  className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                  title="刷新"
+                >
+                  <RefreshCw size={20} />
+                </button>
+              </div>
+            </div>
 
-                    <span className="text-sm text-gray-600">
-                      第 {data.pagination.page} / {data.pagination.totalPages} 页
-                    </span>
+            {/* Search and Filter */}
+            <div className="flex flex-col lg:flex-row items-start gap-4">
+              {/* Search Box */}
+              <div className="flex-1 lg:max-w-md">
+                <SearchBox onSearch={handleSearch} />
+              </div>
 
-                    <button
-                      onClick={() => setPage(page + 1)}
-                      disabled={!data.pagination.hasNext}
-                      className="px-4 py-2 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                    >
-                      下一页
-                    </button>
-                  </div>
-                )}
-              </>
-            )}
-          </>
-        )}
-      </main>
+              {/* Category Filter */}
+              <div className="flex-1 lg:flex-none lg:ml-auto overflow-x-auto">
+                <CategoryFilter
+                  selectedCategory={category}
+                  onSelectCategory={(cat) => {
+                    setCategory(cat)
+                    setKey((prev) => prev + 1)
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        </header>
 
-      {/* Footer */}
-      <footer className="bg-white border-t border-gray-200 mt-12">
-        <div className="max-w-7xl mx-auto px-4 py-6 text-center text-sm text-gray-500">
-          <p>© 2026 AI News Hub. All rights reserved.</p>
-        </div>
-      </footer>
-    </div>
+        {/* Main Content */}
+        <main className="max-w-7xl mx-auto px-4 py-8">
+          <NewsList
+            key={`${category}-${sort}-${key}`}
+            category={category}
+            sort={sort}
+          />
+        </main>
+
+        {/* Footer */}
+        <footer className="bg-white border-t border-gray-200 mt-12">
+          <div className="max-w-7xl mx-auto px-4 py-6">
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-gray-500">
+                <p>© 2026 AI News Hub. All rights reserved.</p>
+              </div>
+              <div className="flex items-center gap-4 text-sm text-gray-500">
+                <a href="/about" className="hover:text-blue-600 transition-colors">
+                  关于
+                </a>
+                <a href="/privacy" className="hover:text-blue-600 transition-colors">
+                  隐私政策
+                </a>
+              </div>
+            </div>
+          </div>
+        </footer>
+      </div>
+    </QueryClientProvider>
   )
 }
