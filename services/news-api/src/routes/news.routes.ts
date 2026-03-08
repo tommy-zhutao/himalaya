@@ -5,7 +5,7 @@ const router = Router()
 
 /**
  * GET /api/news/search
- * Search news by title, summary, or content
+ * Search news by title, summary or content
  *
  * Query params:
  * - q: search query (required)
@@ -17,7 +17,7 @@ router.get('/search', async (req, res) => {
   try {
     const { q } = req.query
 
-    if (!q || typeof q !== 'string') {
+    if (!q || || typeof q !== 'string') {
       return res.status(400).json({ error: 'Search query is required' })
     }
 
@@ -116,7 +116,7 @@ router.get('/hot', async (req, res) => {
 
 /**
  * GET /api/news/related/:id
- * Get related news by category
+ * Get related news by category or source
  */
 router.get('/related/:id', async (req, res) => {
   try {
@@ -136,15 +136,22 @@ router.get('/related/:id', async (req, res) => {
       return res.status(404).json({ error: 'News not found' })
     }
 
-    // Find related news by category or source
+    // Build where clause for related news
     const where: any = {
       id: { not: id }, // Exclude original news
     }
 
+    // Try to find related news by category first
     if (original.category) {
       where.category = original.category
     } else if (original.sourceId) {
+      // Fallback to same source
       where.sourceId = original.sourceId
+    }
+
+    // If neither category nor source is available, return empty
+    if (!where.category && !where.sourceId) {
+      return res.json({ data: [] })
     }
 
     const related = await prisma.news.findMany({
@@ -219,6 +226,7 @@ router.get('/', async (req, res) => {
             },
           },
         },
+ },
       }),
       prisma.news.count({ where }),
     ])
