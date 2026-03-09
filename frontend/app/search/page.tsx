@@ -1,7 +1,7 @@
 'use client'
 
-import { SearchBar } from '@/components/SearchBar'
-import { SearchResults } from '@/components/SearchResults'
+import SearchBar from '@/components/SearchBar'
+import SearchResults from '@/components/SearchResults'
 
 export default function SearchPage() {
   return (

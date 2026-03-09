@@ -1,11 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import NewsList from '@/components/NewsList'
 import SearchBox from '@/components/SearchBox'
 import CategoryFilter from '@/components/CategoryFilter'
-import { RefreshCw } from 'lucide-react'
+import { RefreshCw, User, LogOut } from 'lucide-react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { useAuthStore } from '@/lib/stores/authStore'
+import Link from 'next/link'
 
 // Create QueryClient outside component to avoid recreating on every render
 const queryClient = new QueryClient({
@@ -21,6 +23,13 @@ export default function HomePage() {
   const [category, setCategory] = useState<string | undefined>()
   const [sort, setSort] = useState<'latest' | 'hot'>('latest')
   const [key, setKey] = useState(0) // Key to force refetch
+  
+  const { user, isAuthenticated, fetchUser, logout } = useAuthStore()
+
+  // Fetch user on mount
+  useEffect(() => {
+    fetchUser()
+  }, [fetchUser])
 
   const handleSearch = (query: string) => {
     console.log('Search query:', query)
@@ -31,6 +40,10 @@ export default function HomePage() {
 
   const handleRefresh = () => {
     setKey((prev) => prev + 1)
+  }
+
+  const handleLogout = () => {
+    logout()
   }
 
   return (
@@ -83,6 +96,40 @@ export default function HomePage() {
                 >
                   <RefreshCw size={20} />
                 </button>
+
+                {/* Auth Buttons */}
+                {isAuthenticated && user ? (
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 rounded-lg">
+                      <User size={16} className="text-blue-600" />
+                      <span className="text-sm font-medium text-blue-600">
+                        {user.username}
+                      </span>
+                    </div>
+                    <button
+                      onClick={handleLogout}
+                      className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                      title="退出"
+                    >
+                      <LogOut size={20} />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <Link
+                      href="/login"
+                      className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                    >
+                      登录
+                    </Link>
+                    <Link
+                      href="/register"
+                      className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-all"
+                    >
+                      注册
+                    </Link>
+                  </div>
+                )}
               </div>
             </div>
 

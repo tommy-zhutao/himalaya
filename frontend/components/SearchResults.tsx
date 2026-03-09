@@ -2,7 +2,8 @@
 
 import { useQuery } from '@tanstack/react-query'
 import axios from 'axios'
-import { NewsCard } from './NewsCard'
+import { useRouter } from 'next/navigation'
+import NewsCard from './NewsCard'
 
 interface NewsItem {
   id: number
@@ -129,7 +130,7 @@ export default function SearchResults({ q: query, page }: SearchPageProps) {
       )}
 
       {/* Results */}
-      {!isLoading && !error && data?.data &&?.length > 0 && (
+      {!isLoading && !error && data?.data && data.data.length > 0 && (
         <div className="space-y-6">
           {/* Header */}
           <div className="mb-6">
@@ -140,7 +141,7 @@ export default function SearchResults({ q: query, page }: SearchPageProps) {
               )}
             </h2>
             <p className="text-sm text-gray-600">
-              找到 {共 data?.pagination?.total || 0} 条相关新闻
+              找到 {data?.pagination?.total || 0} 条相关新闻
             </p>
           </div>
 

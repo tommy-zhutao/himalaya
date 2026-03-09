@@ -61,20 +61,19 @@ Phase 5: Documentation          ⏸️  未开始 (0%)
 
 ### 核心功能（MVP - 最小可行产品）
 
-**高优先级（P0）- 必须完成**
+**高优先级（P0）- 必须完成完成）**
 - ✅ 项目基础结构（已完成）
 - ✅ PostgreSQL 数据库初始化（已完成）
-- ✅ News API Service（新闻列表、详情） ← **刚完成**
-- ⏳ Frontend - 新闻列表页面
-- ⏳ Frontend - 新闻详情页面
-- ⏳ RSS Fetcher Service（定时抓取）
-- ⏳ 默认新闻源配置
+- ✅ News API Service（新闻列表、详情）
+- ✅ Frontend - 新闻列表页面
+- ✅ Frontend - 新闻详情页面
+- ✅ RSS Fetcher Service（定时抓取）
+- ✅ Frontend - 搜索功能
+- ✅ 默认新闻源配置（已有3个）
 
 **中优先级（P1）- 完成核心体验**
 - ⏳ User API Service（认证系统）
 - ⏳ Frontend - 登录/注册页面
-- ⏳ Frontend - 搜索功能
-- ⏳ News API - 搜索接口
 - ⏳ API Gateway（统一入口）
 - ⏳ Redis 缓存集成
 
@@ -898,14 +897,14 @@ GET /api/admin/stats
 
 **下一步：**
 1. ✅ T03 已完成
-2. ⏳ 开始 T13: Frontend - 新闻列表页面
-3. ⏳ 或开始 T14: Frontend - 新闻详情页面
-4. ⏳ 或开始 T07: RSS Fetcher Service
+2. ✅ T07 RSS Fetcher Service 已完成（自动抓取新闻）
+3. ⏳ 开始 T14: Frontend - 新闻详情页面
+4. ⏳ 或开始 T15: Frontend - 搜索页面
 
 **问题：**
 涛哥，下一步想做哪个任务？
-- 选项 A: 继续开发前端（T13 新闻列表页面）
-- 选项 B: 实现 RSS Fetcher Service（T07，可以自动抓取新闻）
+- 选项 A: 继续开发前端（T14 新闻详情页面）
+- 选项 B: 实现搜索功能（T15 搜索页面）
 - 选项 C: 休息一下，等下次心跳检查
 
 ---
