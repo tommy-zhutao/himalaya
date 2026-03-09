@@ -72,8 +72,8 @@ Phase 5: Documentation          ⏸️  未开始 (0%)
 - ✅ 默认新闻源配置（已有3个）
 
 **中优先级（P1）- 完成核心体验**
-- ⏳ User API Service（认证系统）
-- ⏳ Frontend - 登录/注册页面
+- ✅ User API Service（认证系统）
+- ✅ Frontend - 登录/注册页面
 - ⏳ API Gateway（统一入口）
 - ⏳ Redis 缓存集成
 
@@ -202,7 +202,7 @@ GET /api/news/related/:id?limit=5
 
 ---
 
-#### T04: User API Service - 认证系统
+#### T04: User API Service - 认证系统 ✅
 **优先级：** P1
 **预计时间：** 4-5 小时
 **前置条件：** T01, T02
@@ -227,32 +227,16 @@ GET /api/news/related/:id?limit=5
 8. 实现 `GET /api/users/me` 接口（需要认证）
 
 **验收标准：**
-- [ ] 用户注册成功
-- [ ] 用户登录成功，返回 Token
-- [ ] Token 刷新正常工作
-- [ ] 受保护接口需要认证
-- [ ] 无效 Token 返回 401
+- [x] 用户注册成功
+- [x] 用户登录成功，返回 Token
+- [x] Token 刷新正常工作
+- [x] 受保护接口需要认证
+- [x] 无效 Token 返回 401
 
 **依赖服务：** PostgreSQL, Prisma
 
-**API 接口：**
-```typescript
-POST /api/auth/register
-  Body: { email, username, password }
-  Response: { user, token }
-
-POST /api/auth/login
-  Body: { email, password }
-  Response: { user, token }
-
-POST /api/auth/refresh
-  Body: { refreshToken }
-  Response: { token }
-
-GET /api/users/me
-  Headers: Authorization: Bearer <token>
-  Response: { user }
-```
+**状态：** ✅ 已完成
+**完成时间：** 2026-03-09
 
 ---
 
@@ -603,7 +587,7 @@ GET /api/news/search?q=AI&page=1&limit=20
 
 ---
 
-#### T16: Frontend - 登录/注册页面
+#### T16: Frontend - 登录/注册页面 ✅
 **优先级：** P1
 **预计时间：** 2-3 小时
 **前置条件：** T11, T12, T04
@@ -627,17 +611,14 @@ GET /api/news/search?q=AI&page=1&limit=20
    - 管理登录状态
 
 **验收标准：**
-- [ ] 登录功能正常工作
-- [ ] 注册功能正常工作
-- [ ] 表单验证正常工作
-- [ ] Token 正确存储
-- [ ] 用户状态正确管理
+- [x] 登录功能正常工作
+- [x] 注册功能正常工作
+- [x] 表单验证正常工作
+- [x] Token 正确存储
+- [x] 用户状态正确管理
 
-**API 接口：**
-```typescript
-POST /api/auth/register
-POST /api/auth/login
-```
+**状态：** ✅ 已完成
+**完成时间：** 2026-03-09
 
 ---
 
@@ -787,17 +768,17 @@ GET /api/admin/stats
 ### Milestone 2: 核心功能完整
 **时间：** Day 6
 **验收标准：**
-- [ ] 所有 P0 任务完成
-- [ ] 所有 P1 任务完成
-- [ ] 搜索功能正常工作
-- [ ] 用户系统正常工作
+- [x] 所有 P0 任务完成
+- [ ] 所有 P1 任务完成（2/4 已完成）
+- [x] 搜索功能正常工作
+- [x] 用户系统正常工作
 - [ ] API Gateway 正常工作
 
 **演示功能：**
-1. 用户注册/登录
-2. 搜索新闻
-3. 用户收藏新闻
-4. 查看收藏列表
+1. ✅ 用户注册/登录
+2. ✅ 搜索新闻
+3. ⏳ 用户收藏新闻
+4. ⏳ 查看收藏列表
 
 ---
 
@@ -866,16 +847,16 @@ GET /api/admin/stats
 
 ### Phase 3: Implementation ⏳
 - **预计时间：** 6-7 天
-- **进度：** 10% (已完成 T01-T03)
+- **进度：** 45% (已完成 T01-T03, T07, T13-T16, T04)
 - **状态：** 进行中
 
 **分解：**
-- [x] Day 1: T01, T02, T03（基础设施 + News API） ← **当前位置**
-- Day 2: T13, T14（前端新闻列表 + 详情）
-- Day 3: T07, T15（RSS Fetcher + 搜索）
-- Day 4: **Milestone 1** - MVP 可用
-- Day 5: T04, T16（User API + 登录注册）
-- Day 6: T08, T12（API Gateway + 布局）- **Milestone 2**
+- [x] Day 1: T01, T02, T03（基础设施 + News API）
+- [x] Day 2: T13, T14（前端新闻列表 + 详情）
+- [x] Day 3: T07, T15（RSS Fetcher + 搜索）
+- [x] Day 4: **Milestone 1** - MVP 可用 ✅
+- [x] Day 5: T04, T16（User API + 登录注册） ← **当前位置**
+- Day 6: T08, T09（API Gateway + Redis 缓存）- **Milestone 2**
 - Day 7: T05, T06, T17, T18（其他服务 + 用户中心 + 后台管理）
 - Day 8: **Milestone 3** - 功能完整
 
@@ -893,19 +874,18 @@ GET /api/admin/stats
 
 ## 下一步行动
 
-**当前任务：** T03 News API Service - 基础 CRUD ✅ 已完成
+**当前任务：** T16 Frontend - 登录/注册页面 ✅ 已完成
 
 **下一步：**
-1. ✅ T03 已完成
-2. ✅ T07 RSS Fetcher Service 已完成（自动抓取新闻）
-3. ⏳ 开始 T14: Frontend - 新闻详情页面
-4. ⏳ 或开始 T15: Frontend - 搜索页面
+1. ✅ T16 已完成
+2. ⏳ 开始 T08: API Gateway（统一入口）
+3. ⏳ 或开始 T09: Redis 缓存集成
 
 **问题：**
 涛哥，下一步想做哪个任务？
-- 选项 A: 继续开发前端（T14 新闻详情页面）
-- 选项 B: 实现搜索功能（T15 搜索页面）
-- 选项 C: 休息一下，等下次心跳检查
+- 选项 A: 实现 API Gateway（统一入口）
+- 选项 B: 实现 Redis 缓存集成
+- 选项 C: 其他任务
 
 ---
 
