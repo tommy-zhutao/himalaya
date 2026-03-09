@@ -74,7 +74,7 @@ Phase 5: Documentation          ⏸️  未开始 (0%)
 **中优先级（P1）- 完成核心体验**
 - ✅ User API Service（认证系统）
 - ✅ Frontend - 登录/注册页面
-- ⏳ API Gateway（统一入口）
+- ✅ API Gateway（统一入口）
 - ⏳ Redis 缓存集成
 
 **低优先级（P2）- 增强功能**
@@ -769,10 +769,10 @@ GET /api/admin/stats
 **时间：** Day 6
 **验收标准：**
 - [x] 所有 P0 任务完成
-- [ ] 所有 P1 任务完成（2/4 已完成）
+- [ ] 所有 P1 任务完成（3/4 已完成）
 - [x] 搜索功能正常工作
 - [x] 用户系统正常工作
-- [ ] API Gateway 正常工作
+- [x] API Gateway 正常工作
 
 **演示功能：**
 1. ✅ 用户注册/登录
@@ -847,7 +847,7 @@ GET /api/admin/stats
 
 ### Phase 3: Implementation ⏳
 - **预计时间：** 6-7 天
-- **进度：** 45% (已完成 T01-T03, T07, T13-T16, T04)
+- **进度：** 55% (已完成 T01-T03, T07, T13-T16, T04, T08)
 - **状态：** 进行中
 
 **分解：**
@@ -855,10 +855,11 @@ GET /api/admin/stats
 - [x] Day 2: T13, T14（前端新闻列表 + 详情）
 - [x] Day 3: T07, T15（RSS Fetcher + 搜索）
 - [x] Day 4: **Milestone 1** - MVP 可用 ✅
-- [x] Day 5: T04, T16（User API + 登录注册） ← **当前位置**
-- Day 6: T08, T09（API Gateway + Redis 缓存）- **Milestone 2**
-- Day 7: T05, T06, T17, T18（其他服务 + 用户中心 + 后台管理）
-- Day 8: **Milestone 3** - 功能完整
+- [x] Day 5: T04, T16（User API + 登录注册）
+- [x] Day 6: T08（API Gateway） ← **当前位置**
+- Day 7: T09（Redis 缓存）- **Milestone 2**
+- Day 8: T05, T06, T17, T18（其他服务 + 用户中心 + 后台管理）
+- Day 9: **Milestone 3** - 功能完整
 
 ### Phase 4: Testing & Deployment ⏸️
 - **预计时间：** 1-2 天
@@ -874,18 +875,14 @@ GET /api/admin/stats
 
 ## 下一步行动
 
-**当前任务：** T16 Frontend - 登录/注册页面 ✅ 已完成
+**当前任务：** T08 API Gateway - 统一入口 ✅ 已完成
 
 **下一步：**
-1. ✅ T16 已完成
-2. ⏳ 开始 T08: API Gateway（统一入口）
-3. ⏳ 或开始 T09: Redis 缓存集成
+1. ✅ T08 已完成
+2. ⏳ 开始 T09: Redis 缓存集成
 
 **问题：**
-涛哥，下一步想做哪个任务？
-- 选项 A: 实现 API Gateway（统一入口）
-- 选项 B: 实现 Redis 缓存集成
-- 选项 C: 其他任务
+涛哥，要继续 T09 Redis 缓存集成吗？
 
 ---
 
