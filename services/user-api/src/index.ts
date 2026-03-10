@@ -3,6 +3,7 @@ import cors from 'cors'
 import dotenv from 'dotenv'
 import { prisma } from './lib/prisma'
 import authRoutes from './routes/auth.routes'
+import favoritesRoutes from './routes/favorites.routes'
 
 // Load environment variables
 dotenv.config()
@@ -31,6 +32,7 @@ app.get('/health', (req, res) => {
 
 // Routes
 app.use('/api/auth', authRoutes)
+app.use('/api/users/favorites', favoritesRoutes)
 
 // 404 handler
 app.use((req, res) => {

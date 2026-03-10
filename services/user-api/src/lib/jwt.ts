@@ -1,6 +1,9 @@
 import jwt from 'jsonwebtoken'
 
-const SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
+const SECRET = process.env.JWT_SECRET
+if (!SECRET) {
+  throw new Error('JWT_SECRET environment variable is required')
+}
 const ACCESS_TOKEN_EXPIRY = '1h' // 1 hour
 const REFRESH_TOKEN_EXPIRY = '7d' // 7 days
 

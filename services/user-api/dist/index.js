@@ -8,6 +8,7 @@ const cors_1 = __importDefault(require("cors"));
 const dotenv_1 = __importDefault(require("dotenv"));
 const prisma_1 = require("./lib/prisma");
 const auth_routes_1 = __importDefault(require("./routes/auth.routes"));
+const favorites_routes_1 = __importDefault(require("./routes/favorites.routes"));
 // Load environment variables
 dotenv_1.default.config();
 const app = (0, express_1.default)();
@@ -30,6 +31,7 @@ app.get('/health', (req, res) => {
 });
 // Routes
 app.use('/api/auth', auth_routes_1.default);
+app.use('/api/users/favorites', favorites_routes_1.default);
 // 404 handler
 app.use((req, res) => {
     res.status(404).json({ error: 'Not found' });

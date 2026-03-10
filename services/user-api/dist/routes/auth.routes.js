@@ -58,7 +58,7 @@ router.post('/register', async (req, res) => {
             data: {
                 email,
                 username,
-                password: hashedPassword,
+                passwordHash: hashedPassword,
                 role: 'user',
             },
         });
@@ -115,7 +115,7 @@ router.post('/login', async (req, res) => {
             });
         }
         // Verify password
-        const isValid = await (0, password_1.comparePassword)(password, user.password);
+        const isValid = await (0, password_1.comparePassword)(password, user.passwordHash);
         if (!isValid) {
             return res.status(401).json({
                 error: '邮箱或密码错误',

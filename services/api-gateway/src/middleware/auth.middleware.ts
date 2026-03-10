@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express'
 import jwt from 'jsonwebtoken'
 
 export interface AuthUser {
-  userId: string
+  userId: number
   email: string
   username: string
   role?: string
@@ -44,7 +44,14 @@ export function authMiddleware(req: Request, res: Response, next: NextFunction) 
   const token = authHeader.substring(7)
 
   try {
-    const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key'
+    const JWT_SECRET = process.env.JWT_SECRET
+    if (!JWT_SECRET) {
+      console.error('JWT_SECRET environment variable is not set')
+      return res.status(500).json({
+        error: 'Server Configuration Error',
+        message: 'Authentication service is not properly configured',
+      })
+    }
     const decoded = jwt.verify(token, JWT_SECRET) as AuthUser
 
     // Add user info to request

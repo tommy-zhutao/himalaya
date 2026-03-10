@@ -76,7 +76,7 @@ export default function NewsList({ category, sourceId, sort = 'latest' }: NewsLi
           >
             <div className="h-6 w-3/4 bg-gray-200 rounded mb-3"></div>
             <div className="space-y-2">
-              <div className="h-4 w-full bg-gray-gray-200 rounded"></div>
+              <div className="h-4 w-full bg-gray-200 rounded"></div>
               <div className="h-4 w-5/6 bg-gray-200 rounded"></div>
             </div>
           </div>
@@ -152,7 +152,7 @@ export default function NewsList({ category, sourceId, sort = 'latest' }: NewsLi
       </div>
 
       {/* Pagination Info */}
-      <div className="flex items[ justify-center pt-4 border-t border-gray-200">
+      <div className="flex items-center justify-center pt-4 border-t border-gray-200">
         <div className="flex items-center gap-2 text-sm text-gray-600">
           <span>
             第 {pagination.page} / {pagination.totalPages} 页
