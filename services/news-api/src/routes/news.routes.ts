@@ -1,7 +1,27 @@
 import { Router } from 'express'
 import { prisma } from '../lib/prisma'
+import { get, set, initRedis, closeRedis } from '../cache/redis'
 
 const router = Router()
+
+// Initialize Redis on module load
+initRedis()
+
+// Cache TTL constants (in seconds)
+const CACHE_TTL = {
+  LIST: 5 * 60,      // 5 minutes
+  DETAIL: 10 * 60,   // 10 minutes
+  SEARCH: 2 * 60,    // 2 minutes
+  HOT: 5 * 60,       // 5 minutes
+  RELATED: 5 * 60,   // 5 minutes
+}
+
+/**
+ * Generate cache key for news list
+ */
+function getListCacheKey(page: number, limit: number, category: string | undefined, sort: string): string {
+  return `news:list:${page}:${limit}:${category || 'all'}:${sort}`
+}
 
 /**
  * GET /api/news/search
@@ -17,13 +37,22 @@ router.get('/search', async (req, res) => {
   try {
     const { q } = req.query
 
-    if (!q || || typeof q !== 'string') {
+    if (!q || typeof q !== 'string' || q.trim() === '') {
       return res.status(400).json({ error: 'Search query is required' })
     }
 
     const page = parseInt(req.query.page as string) || 1
     const limit = Math.min(parseInt(req.query.limit as string) || 20, 100)
     const category = req.query.category as string | undefined
+
+    // Try to get from cache
+    const cacheKey = `news:search:${q}:${page}:${limit}:${category || 'all'}`
+    const cached = await get<any>(cacheKey)
+    if (cached) {
+      console.log(`[Cache] miss: ${cacheKey}`)
+      return res.json(cached)
+    }
+    console.log(`[Cache] miss: ${cacheKey}`)
 
     const skip = (page - 1) * limit
 
@@ -58,7 +87,7 @@ router.get('/search', async (req, res) => {
       prisma.news.count({ where }),
     ])
 
-    res.json({
+    const result = {
       query: q,
       data: news,
       pagination: {
@@ -69,7 +98,12 @@ router.get('/search', async (req, res) => {
         hasNext: page < Math.ceil(total / limit),
         hasPrev: page > 1,
       },
-    })
+    }
+
+    // Cache the result
+    await set(cacheKey, result, CACHE_TTL.SEARCH)
+
+    res.json(result)
   } catch (error) {
     console.error('Error searching news:', error)
     res.status(500).json({ error: 'Failed to search news' })
@@ -84,6 +118,15 @@ router.get('/hot', async (req, res) => {
   try {
     const limit = Math.min(parseInt(req.query.limit as string) || 10, 50)
     const days = parseInt(req.query.days as string) || 7
+
+    // Try to get from cache
+    const cacheKey = `news:hot:${limit}:${days}`
+    const cached = await get<any>(cacheKey)
+    if (cached) {
+      console.log(`[Cache] miss: ${cacheKey}`)
+      return res.json(cached)
+    }
+    console.log(`[Cache] miss: ${cacheKey}`)
 
     const startDate = new Date()
     startDate.setDate(startDate.getDate() - days)
@@ -107,7 +150,12 @@ router.get('/hot', async (req, res) => {
       },
     })
 
-    res.json({ data: news })
+    const result = { data: news }
+
+    // Cache the result
+    await set(cacheKey, result, CACHE_TTL.HOT)
+
+    res.json(result)
   } catch (error) {
     console.error('Error fetching hot news:', error)
     res.status(500).json({ error: 'Failed to fetch hot news' })
@@ -126,6 +174,15 @@ router.get('/related/:id', async (req, res) => {
     if (isNaN(id)) {
       return res.status(400).json({ error: 'Invalid news ID' })
     }
+
+    // Try to get from cache
+    const cacheKey = `news:related:${id}:${limit}`
+    const cached = await get<any>(cacheKey)
+    if (cached) {
+      console.log(`[Cache] miss: ${cacheKey}`)
+      return res.json(cached)
+    }
+    console.log(`[Cache] miss: ${cacheKey}`)
 
     // Get original news first
     const original = await prisma.news.findUnique({
@@ -151,7 +208,9 @@ router.get('/related/:id', async (req, res) => {
 
     // If neither category nor source is available, return empty
     if (!where.category && !where.sourceId) {
-      return res.json({ data: [] })
+      const emptyResult = { data: [] }
+      await set(cacheKey, emptyResult, CACHE_TTL.RELATED)
+      return res.json(emptyResult)
     }
 
     const related = await prisma.news.findMany({
@@ -169,7 +228,12 @@ router.get('/related/:id', async (req, res) => {
       },
     })
 
-    res.json({ data: related })
+    const result = { data: related }
+
+    // Cache the result
+    await set(cacheKey, result, CACHE_TTL.RELATED)
+
+    res.json(result)
   } catch (error) {
     console.error('Error fetching related news:', error)
     res.status(500).json({ error: 'Failed to fetch related news' })
@@ -210,6 +274,15 @@ router.get('/', async (req, res) => {
       orderBy.publishedAt = 'desc'
     }
 
+    // Try to get from cache
+    const cacheKey = getListCacheKey(page, limit, category, sort)
+    const cached = await get<any>(cacheKey)
+    if (cached) {
+      console.log(`[Cache] miss: ${cacheKey}`)
+      return res.json(cached)
+    }
+    console.log(`[Cache] miss: ${cacheKey}`)
+
     // Fetch news with pagination
     const [news, total] = await Promise.all([
       prisma.news.findMany({
@@ -226,12 +299,11 @@ router.get('/', async (req, res) => {
             },
           },
         },
- },
       }),
       prisma.news.count({ where }),
     ])
 
-    res.json({
+    const result = {
       data: news,
       pagination: {
         page,
@@ -241,7 +313,12 @@ router.get('/', async (req, res) => {
         hasNext: page < Math.ceil(total / limit),
         hasPrev: page > 1,
       },
-    })
+    }
+
+    // Cache the result
+    await set(cacheKey, result, CACHE_TTL.LIST)
+
+    res.json(result)
   } catch (error) {
     console.error('Error fetching news:', error)
     res.status(500).json({ error: 'Failed to fetch news' })
@@ -259,6 +336,20 @@ router.get('/:id', async (req, res) => {
     if (isNaN(id)) {
       return res.status(400).json({ error: 'Invalid news ID' })
     }
+
+    // Try to get from cache
+    const cacheKey = `news:detail:${id}`
+    const cached = await get<any>(cacheKey)
+    if (cached) {
+      console.log(`[Cache] miss: ${cacheKey}`)
+      // Still increment view count even for cached results
+      await prisma.news.update({
+        where: { id },
+        data: { viewCount: { increment: 1 } },
+      }).catch(() => {}) // Ignore errors
+      return res.json(cached)
+    }
+    console.log(`[Cache] miss: ${cacheKey}`)
 
     const news = await prisma.news.findUnique({
       where: { id },
@@ -284,7 +375,12 @@ router.get('/:id', async (req, res) => {
       data: { viewCount: { increment: 1 } },
     })
 
-    res.json({ data: news })
+    const result = { data: news }
+
+    // Cache the result
+    await set(cacheKey, result, CACHE_TTL.DETAIL)
+
+    res.json(result)
   } catch (error) {
     console.error('Error fetching news detail:', error)
     res.status(500).json({ error: 'Failed to fetch news detail' })

@@ -3,6 +3,7 @@ import cors from 'cors'
 import dotenv from 'dotenv'
 import newsRoutes from './routes/news.routes'
 import { prisma } from './lib/prisma'
+import { closeRedis } from './cache/redis'
 
 // Load environment variables
 dotenv.config()
@@ -61,12 +62,14 @@ async function start() {
 process.on('SIGTERM', async () => {
   console.log('SIGTERM received, shutting down gracefully...')
   await prisma.$disconnect()
+  await closeRedis()
   process.exit(0)
 })
 
 process.on('SIGINT', async () => {
   console.log('SIGINT received, shutting down gracefully...')
   await prisma.$disconnect()
+  await closeRedis()
   process.exit(0)
 })
 
