@@ -1,8 +1,11 @@
 import jwt from 'jsonwebtoken'
 
-const SECRET = process.env.JWT_SECRET
-if (!SECRET) {
-  throw new Error('JWT_SECRET environment variable is required')
+const getSecret = (): string => {
+  const secret = process.env.JWT_SECRET
+  if (!secret) {
+    throw new Error('JWT_SECRET environment variable is required')
+  }
+  return secret
 }
 
 export interface TokenPayload {
@@ -17,7 +20,7 @@ export interface TokenPayload {
  */
 export function verifyToken(token: string): TokenPayload | null {
   try {
-    return jwt.verify(token, SECRET) as TokenPayload
+    return jwt.verify(token, getSecret()) as TokenPayload
   } catch (error) {
     console.error('Token verification failed:', error)
     return null

@@ -4,7 +4,7 @@
   "description": "Admin API Service for AI News Hub",
   "main": "dist/index.js",
   "scripts": {
-    "build": "tver",
+    "build": "tsc",
     "start": "node dist/index.js",
     "dev": "ts-node src/index.ts"
   },

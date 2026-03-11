@@ -1,9 +1,13 @@
 import jwt from 'jsonwebtoken'
 
-const SECRET = process.env.JWT_SECRET
-if (!SECRET) {
-  throw new Error('JWT_SECRET environment variable is required')
+const getSecret = (): string => {
+  const secret = process.env.JWT_SECRET
+  if (!secret) {
+    throw new Error('JWT_SECRET environment variable is required')
+  }
+  return secret
 }
+
 const ACCESS_TOKEN_EXPIRY = '1h' // 1 hour
 const REFRESH_TOKEN_EXPIRY = '7d' // 7 days
 
@@ -17,7 +21,7 @@ export interface TokenPayload {
  * Generate access token
  */
 export function generateAccessToken(payload: TokenPayload): string {
-  return jwt.sign(payload, SECRET, {
+  return jwt.sign(payload, getSecret(), {
     expiresIn: ACCESS_TOKEN_EXPIRY,
   })
 }
@@ -26,7 +30,7 @@ export function generateAccessToken(payload: TokenPayload): string {
  * Generate refresh token
  */
 export function generateRefreshToken(payload: TokenPayload): string {
-  return jwt.sign(payload, SECRET, {
+  return jwt.sign(payload, getSecret(), {
     expiresIn: REFRESH_TOKEN_EXPIRY,
   })
 }
@@ -36,7 +40,7 @@ export function generateRefreshToken(payload: TokenPayload): string {
  */
 export function verifyToken(token: string): TokenPayload | null {
   try {
-    return jwt.verify(token, SECRET) as TokenPayload
+    return jwt.verify(token, getSecret()) as TokenPayload
   } catch (error) {
     console.error('Token verification failed:', error)
     return null
