@@ -8,6 +8,81 @@ const router = Router()
 router.use(requireAdmin)
 
 /**
+ * POST /api/admin/sources/test
+ * Test a news source connection
+ */
+router.post('/test', async (req: AuthRequest, res: Response) => {
+  try {
+    const { url, type } = req.body
+
+    if (!url) {
+      res.status(400).json({
+        success: false,
+        message: 'URL 是必需的',
+      })
+      return
+    }
+
+    // Test the connection
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'User-Agent': 'AI-News-Hub/1.0',
+        },
+        signal: AbortSignal.timeout(10000), // 10 second timeout
+      })
+
+      if (!response.ok) {
+        res.json({
+          success: false,
+          message: `HTTP 错误: ${response.status} ${response.statusText}`,
+        })
+        return
+      }
+
+      // For RSS, check if content is XML
+      const contentType = response.headers.get('content-type') || ''
+      if (type === 'rss' && !contentType.includes('xml') && !contentType.includes('rss')) {
+        // Try to fetch content and check
+        const text = await response.text()
+        if (!text.includes('<rss') && !text.includes('<feed')) {
+          res.json({
+            success: false,
+            message: 'URL 内容不是有效的 RSS/Atom 格式',
+          })
+          return
+        }
+      }
+
+      res.json({
+        success: true,
+        message: '连接成功',
+      })
+    } catch (fetchError: any) {
+      let message = '连接失败'
+      if (fetchError.name === 'TimeoutError' || fetchError.message?.includes('timeout')) {
+        message = '连接超时，请检查 URL 是否可访问'
+      } else if (fetchError.code === 'ENOTFOUND') {
+        message = '域名不存在'
+      } else if (fetchError.code === 'ECONNREFUSED') {
+        message = '连接被拒绝'
+      }
+      res.json({
+        success: false,
+        message,
+      })
+    }
+  } catch (error) {
+    console.error('Error testing source:', error)
+    res.status(500).json({
+      success: false,
+      message: '测试失败',
+    })
+  }
+})
+
+/**
  * GET /api/admin/sources
  * List all news sources
  */

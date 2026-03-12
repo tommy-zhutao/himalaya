@@ -31,6 +31,8 @@ export default function SourcesPage() {
     category: '',
     enabled: true,
   })
+  const [testingUrl, setTestingUrl] = useState<string | null>(null)
+  const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null)
 
   useEffect(() => {
     fetchSources()
@@ -150,6 +152,40 @@ export default function SourcesPage() {
       }
     } catch (error) {
       console.error('Failed to toggle source:', error)
+    }
+  }
+
+  const handleTestConnection = async () => {
+    if (!formData.url.trim()) {
+      setTestResult({ success: false, message: '请输入 URL' })
+      return
+    }
+
+    setTestingUrl(formData.url)
+    setTestResult(null)
+
+    try {
+      const res = await fetch(`${API_URL}/api/admin/sources/test`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+        },
+        body: JSON.stringify({
+          url: formData.url,
+          type: formData.type,
+        }),
+      })
+
+      const data = await res.json()
+      setTestResult({
+        success: res.ok,
+        message: data.message || (res.ok ? '连接成功' : '连接失败'),
+      })
+    } catch (error) {
+      setTestResult({ success: false, message: '测试失败，请检查 URL 是否正确' })
+    } finally {
+      setTestingUrl(null)
     }
   }
 
@@ -311,14 +347,32 @@ export default function SourcesPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   URL *
                 </label>
-                <input
-                  type="url"
-                  required
-                  value={formData.url}
-                  onChange={(e) => setFormData({ ...formData, url: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  placeholder="https://example.com/feed"
-                />
+                <div className="flex gap-2">
+                  <input
+                    type="url"
+                    required
+                    value={formData.url}
+                    onChange={(e) => {
+                      setFormData({ ...formData, url: e.target.value })
+                      setTestResult(null)
+                    }}
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="https://example.com/feed"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleTestConnection}
+                    disabled={testingUrl !== null}
+                    className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed text-sm whitespace-nowrap"
+                  >
+                    {testingUrl ? '测试中...' : '测试连接'}
+                  </button>
+                </div>
+                {testResult && (
+                  <p className={`mt-1 text-sm ${testResult.success ? 'text-green-600' : 'text-red-600'}`}>
+                    {testResult.success ? '✓' : '✗'} {testResult.message}
+                  </p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
