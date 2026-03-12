@@ -126,7 +126,7 @@ export default function NewsList({ category, sourceId, sort = 'latest' }: NewsLi
       {/* Header */}
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-bold text-gray-900">
-          {category || '最新新闻'}
+          {sort === 'hot' ? '热门新闻' : (category || '最新新闻')}
         </h2>
         <span className="text-sm text-gray-600">
           共 {pagination.total} 条新闻

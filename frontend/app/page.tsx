@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import NewsList from '@/components/NewsList'
 import SearchBox from '@/components/SearchBox'
 import CategoryFilter from '@/components/CategoryFilter'
-import { RefreshCw, User, LogOut } from 'lucide-react'
+import { RefreshCw, User, LogOut, Heart, Settings } from 'lucide-react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useAuthStore } from '@/lib/stores/authStore'
 import Link from 'next/link'
@@ -96,6 +96,20 @@ export default function HomePage() {
                 {/* Auth Buttons */}
                 {isAuthenticated && user ? (
                   <div className="flex items-center gap-2">
+                    <Link
+                      href="/favorites"
+                      className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                      title="我的收藏"
+                    >
+                      <Heart size={20} />
+                    </Link>
+                    <Link
+                      href="/settings"
+                      className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                      title="设置"
+                    >
+                      <Settings size={20} />
+                    </Link>
                     <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 rounded-lg">
                       <User size={16} className="text-blue-600" />
                       <span className="text-sm font-medium text-blue-600">
@@ -133,7 +147,7 @@ export default function HomePage() {
             <div className="flex flex-col lg:flex-row items-start gap-4">
               {/* Search Box */}
               <div className="flex-1 lg:max-w-md">
-                <SearchBox onSearch={handleSearch} />
+                <SearchBox />
               </div>
 
               {/* Category Filter */}
