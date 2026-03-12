@@ -80,7 +80,7 @@ export default function NewsCard({
           </div>
 
           {/* Image */}
-          {imageUrl && (
+          {imageUrl ? (
             <div className="flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden bg-gray-100">
               <img
                 src={imageUrl}
@@ -88,6 +88,12 @@ export default function NewsCard({
                 className="w-full h-full object-cover"
                 loading="lazy"
               />
+            </div>
+          ) : (
+            <div className="flex-shrink-0 w-20 h-20 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+              <span className="text-white text-2xl font-bold">
+                {title.charAt(0).toUpperCase()}
+              </span>
             </div>
           )}
         </div>

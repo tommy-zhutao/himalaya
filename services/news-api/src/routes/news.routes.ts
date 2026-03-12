@@ -49,7 +49,7 @@ router.get('/search', async (req, res) => {
     const cacheKey = `news:search:${q}:${page}:${limit}:${category || 'all'}`
     const cached = await get<any>(cacheKey)
     if (cached) {
-      console.log(`[Cache] miss: ${cacheKey}`)
+      console.log(`[Cache] hit: ${cacheKey}`)
       return res.json(cached)
     }
     console.log(`[Cache] miss: ${cacheKey}`)
@@ -123,7 +123,7 @@ router.get('/hot', async (req, res) => {
     const cacheKey = `news:hot:${limit}:${days}`
     const cached = await get<any>(cacheKey)
     if (cached) {
-      console.log(`[Cache] miss: ${cacheKey}`)
+      console.log(`[Cache] hit: ${cacheKey}`)
       return res.json(cached)
     }
     console.log(`[Cache] miss: ${cacheKey}`)
@@ -179,7 +179,7 @@ router.get('/related/:id', async (req, res) => {
     const cacheKey = `news:related:${id}:${limit}`
     const cached = await get<any>(cacheKey)
     if (cached) {
-      console.log(`[Cache] miss: ${cacheKey}`)
+      console.log(`[Cache] hit: ${cacheKey}`)
       return res.json(cached)
     }
     console.log(`[Cache] miss: ${cacheKey}`)
@@ -278,7 +278,7 @@ router.get('/', async (req, res) => {
     const cacheKey = getListCacheKey(page, limit, category, sort)
     const cached = await get<any>(cacheKey)
     if (cached) {
-      console.log(`[Cache] miss: ${cacheKey}`)
+      console.log(`[Cache] hit: ${cacheKey}`)
       return res.json(cached)
     }
     console.log(`[Cache] miss: ${cacheKey}`)
@@ -341,7 +341,7 @@ router.get('/:id', async (req, res) => {
     const cacheKey = `news:detail:${id}`
     const cached = await get<any>(cacheKey)
     if (cached) {
-      console.log(`[Cache] miss: ${cacheKey}`)
+      console.log(`[Cache] hit: ${cacheKey}`)
       // Still increment view count even for cached results
       await prisma.news.update({
         where: { id },
