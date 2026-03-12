@@ -31,12 +31,8 @@ export default function HomePage() {
     fetchUser()
   }, [fetchUser])
 
-  const handleSearch = (query: string) => {
-    console.log('Search query:', query)
-    // TODO: Implement search functionality with SearchBox component
-    // For now, just refresh list
-    setKey((prev) => prev + 1)
-  }
+  // SearchBox handles navigation to /search page internally
+  // This callback is just for any additional side effects if needed
 
   const handleRefresh = () => {
     setKey((prev) => prev + 1)

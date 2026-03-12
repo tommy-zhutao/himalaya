@@ -44,17 +44,20 @@ app.get('/health', (req, res) => {
   })
 })
 
-// Authentication middleware (applied to all API routes)
-app.use('/api/*', authMiddleware)
-
 // Proxy routes to downstream services
+// Order matters: public routes first, then authenticated routes
 
-// News API routes
+// News API routes (public - no authentication required for reading)
 app.all('/api/news*', async (req, res) => {
   await proxyService.proxyRequest('news', req, res)
 })
 
-// User API routes (auth + users)
+// Authentication middleware (applied to protected API routes only)
+app.use('/api/auth*', authMiddleware)
+app.use('/api/users*', authMiddleware)
+app.use('/api/admin*', authMiddleware)
+
+// User API routes (auth + users) - requires authentication
 app.all('/api/auth*', async (req, res) => {
   await proxyService.proxyRequest('user', req, res)
 })
@@ -63,7 +66,7 @@ app.all('/api/users*', async (req, res) => {
   await proxyService.proxyRequest('user', req, res)
 })
 
-// Admin API routes
+// Admin API routes - requires authentication
 app.all('/api/admin*', async (req, res) => {
   await proxyService.proxyRequest('admin', req, res)
 })

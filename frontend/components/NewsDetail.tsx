@@ -1,5 +1,10 @@
+'use client'
+
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { ArrowLeft, Calendar, User, ExternalLink, Share2, Bookmark } from 'lucide-react'
+import { ArrowLeft, Calendar, User, ExternalLink, Share2, Bookmark, Loader2 } from 'lucide-react'
+import { useAuthStore } from '@/lib/stores/authStore'
+import { addFavorite, removeFavorite, checkFavorite } from '@/lib/favorites'
 
 interface NewsDetailProps {
   id: number
@@ -31,6 +36,17 @@ export default function NewsDetail({
   tags = [],
   viewCount = 0,
 }: NewsDetailProps) {
+  const { isAuthenticated } = useAuthStore()
+  const [isFavorite, setIsFavorite] = useState(false)
+  const [favoriteLoading, setFavoriteLoading] = useState(false)
+
+  // Check if news is favorited
+  useEffect(() => {
+    if (isAuthenticated) {
+      checkFavorite(id).then(res => setIsFavorite(res.isFavorite))
+    }
+  }, [id, isAuthenticated])
+
   const formatDate = (dateString?: string) => {
     if (!dateString) return ''
     return new Date(dateString).toLocaleDateString('zh-CN', {
@@ -54,9 +70,31 @@ export default function NewsDetail({
         console.error('Error sharing:', error)
       }
     } else {
-      // Fallback: copy to clipboard
       await navigator.clipboard.writeText(window.location.href)
       alert('链接已复制到剪贴板')
+    }
+  }
+
+  const handleFavorite = async () => {
+    if (!isAuthenticated) {
+      alert('请先登录')
+      return
+    }
+
+    setFavoriteLoading(true)
+    try {
+      if (isFavorite) {
+        await removeFavorite(id)
+        setIsFavorite(false)
+      } else {
+        await addFavorite(id)
+        setIsFavorite(true)
+      }
+    } catch (error) {
+      console.error('Favorite error:', error)
+      alert('操作失败，请稍后重试')
+    } finally {
+      setFavoriteLoading(false)
     }
   }
 
@@ -75,9 +113,12 @@ export default function NewsDetail({
         {/* Category */}
         {category && (
           <div className="mb-3">
-            <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
+            <Link
+              href={`/category/${category}`}
+              className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium hover:bg-blue-200 transition-colors"
+            >
               {category}
-            </span>
+            </Link>
           </div>
         )}
 
@@ -186,10 +227,20 @@ export default function NewsDetail({
 
           {/* Bookmark Button */}
           <button
-            className="flex items-center gap-2 px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-lg hover:border-blue-500 hover:text-blue-600 transition-all"
+            onClick={handleFavorite}
+            disabled={favoriteLoading}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
+              isFavorite
+                ? 'bg-blue-600 text-white border border-blue-600'
+                : 'bg-white text-gray-700 border border-gray-300 hover:border-blue-500 hover:text-blue-600'
+            } ${favoriteLoading ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
-            <Bookmark size={18} />
-            <span>收藏</span>
+            {favoriteLoading ? (
+              <Loader2 size={18} className="animate-spin" />
+            ) : (
+              <Bookmark size={18} fill={isFavorite ? 'currentColor' : 'none'} />
+            )}
+            <span>{isFavorite ? '已收藏' : '收藏'}</span>
           </button>
 
           {/* Copy Link Button */}

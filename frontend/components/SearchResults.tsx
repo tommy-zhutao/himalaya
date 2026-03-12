@@ -59,7 +59,7 @@ export default function SearchResults({ q: query, page }: SearchPageProps) {
         }
       }
 
-      const response = await axios.get<NewsResponse>('/api/search', {
+      const response = await axios.get<NewsResponse>('/api/news/search', {
         params: { q: query, page: currentPage, limit: 20 },
       })
       return response.data
