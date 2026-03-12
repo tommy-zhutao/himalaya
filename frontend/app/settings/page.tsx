@@ -1,9 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useAuthStore } from '@/lib/stores/authStore'
 import { useRouter } from 'next/navigation'
-import { User, Mail, Lock, Save, Loader2, ArrowLeft } from 'lucide-react'
+import { User, Mail, Lock, Save, Loader2, ArrowLeft, Camera, Upload } from 'lucide-react'
 import Link from 'next/link'
 import axios from 'axios'
 
@@ -18,6 +18,9 @@ export default function SettingsPage() {
     newPassword: '',
     confirmPassword: '',
   })
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
@@ -36,12 +39,63 @@ export default function SettingsPage() {
         username: user.username || '',
         email: user.email || '',
       }))
+      setAvatarUrl(user.avatarUrl || null)
     }
   }, [user])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
     setFormData(prev => ({ ...prev, [name]: value }))
+  }
+
+  const handleAvatarClick = () => {
+    fileInputRef.current?.click()
+  }
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      setMessage({ type: 'error', text: '请选择图片文件' })
+      return
+    }
+
+    // Validate file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      setMessage({ type: 'error', text: '图片大小不能超过 2MB' })
+      return
+    }
+
+    setUploadingAvatar(true)
+    setMessage(null)
+
+    try {
+      // Convert to base64 for simplicity (in production, use proper file upload)
+      const reader = new FileReader()
+      reader.onload = async () => {
+        const base64 = reader.result as string
+        
+        try {
+          await axios.put('/api/users/me', { avatarUrl: base64 })
+          setAvatarUrl(base64)
+          await fetchUser()
+          setMessage({ type: 'success', text: '头像已更新' })
+        } catch (error: any) {
+          setMessage({ 
+            type: 'error', 
+            text: error.response?.data?.error || '上传头像失败' 
+          })
+        } finally {
+          setUploadingAvatar(false)
+        }
+      }
+      reader.readAsDataURL(file)
+    } catch (error) {
+      setMessage({ type: 'error', text: '读取文件失败' })
+      setUploadingAvatar(false)
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -145,6 +199,43 @@ export default function SettingsPage() {
             </h2>
             
             <div className="space-y-4">
+              {/* Avatar Upload */}
+              <div className="flex items-center gap-4">
+                <div 
+                  onClick={handleAvatarClick}
+                  className="relative w-20 h-20 rounded-full bg-gray-200 flex items-center justify-center cursor-pointer hover:ring-2 hover:ring-blue-500 transition-all overflow-hidden group"
+                >
+                  {avatarUrl ? (
+                    <img 
+                      src={avatarUrl} 
+                      alt="Avatar" 
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <User size={32} className="text-gray-400" />
+                  )}
+                  <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 flex items-center justify-center transition-all">
+                    {uploadingAvatar ? (
+                      <Loader2 size={20} className="text-white animate-spin" />
+                    ) : (
+                      <Camera size={20} className="text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-700">头像</p>
+                  <p className="text-xs text-gray-500">点击更换头像</p>
+                  <p className="text-xs text-gray-400">支持 JPG、PNG，最大 2MB</p>
+                </div>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleAvatarChange}
+                  className="hidden"
+                />
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   用户名

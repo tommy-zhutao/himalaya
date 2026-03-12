@@ -110,12 +110,23 @@ export default function HomePage() {
                     >
                       <Settings size={20} />
                     </Link>
-                    <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 rounded-lg">
-                      <User size={16} className="text-blue-600" />
+                    <Link
+                      href="/settings"
+                      className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+                    >
+                      {user.avatarUrl ? (
+                        <img 
+                          src={user.avatarUrl} 
+                          alt={user.username} 
+                          className="w-5 h-5 rounded-full object-cover"
+                        />
+                      ) : (
+                        <User size={16} className="text-blue-600" />
+                      )}
                       <span className="text-sm font-medium text-blue-600">
                         {user.username}
                       </span>
-                    </div>
+                    </Link>
                     <button
                       onClick={handleLogout}
                       className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
