@@ -12,6 +12,7 @@ interface NewsResponse {
     summary: string
     content: string
     author: string
+    url?: string  // 原文链接
     publishedAt?: string
     imageUrl?: string | null
     category?: string | null
@@ -25,6 +26,11 @@ interface NewsResponse {
       type: string
       url?: string
     }
+    // AI 分析字段
+    aiSummary?: string | null
+    keywords?: string[]
+    sentiment?: 'positive' | 'negative' | 'neutral' | null
+    qualityScore?: number | null
   }
 }
 

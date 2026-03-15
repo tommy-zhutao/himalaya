@@ -78,6 +78,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     { href: '/admin/dashboard', label: '仪表盘', icon: '📊' },
     { href: '/admin/sources', label: '新闻源', icon: '📡' },
     { href: '/admin/news', label: '新闻管理', icon: '📰' },
+    { href: '/admin/logs', label: '抓取日志', icon: '📋' },
     { href: '/admin/users', label: '用户管理', icon: '👥' },
   ]
 

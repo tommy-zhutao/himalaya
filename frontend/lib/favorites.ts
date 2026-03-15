@@ -1,20 +1,27 @@
 import api from './api'
 
+// API 返回的收藏数据就是新闻对象本身
 export interface Favorite {
   id: number
-  newsId: number
-  news: {
+  title: string
+  summary: string
+  content?: string
+  author?: string
+  url: string
+  imageUrl: string | null
+  category?: string
+  tags?: string[]
+  publishedAt?: string
+  source?: {
     id: number
-    title: string
-    summary: string
-    imageUrl: string | null
-    publishedAt: string
-    source?: {
-      id: number
-      name: string
-    }
+    name: string
+    type: string
+    category?: string
   }
-  createdAt: string
+  favoritedAt: string
+  viewCount?: number
+  likeCount?: number
+  shareCount?: number
 }
 
 export interface FavoritesResponse {
@@ -24,6 +31,8 @@ export interface FavoritesResponse {
     limit: number
     total: number
     totalPages: number
+    hasNext?: boolean
+    hasPrev?: boolean
   }
 }
 

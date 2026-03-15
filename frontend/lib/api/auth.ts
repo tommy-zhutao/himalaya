@@ -7,12 +7,22 @@ import {
   User,
 } from '@/lib/types/auth'
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_USER_API_URL || 'http://localhost:4002'
+// 浏览器端使用相对路径（通过 Next.js rewrites 代理）
+// 服务器端使用 Docker 内部地址
+const getApiBaseUrl = () => {
+  if (typeof window !== 'undefined') {
+    // 浏览器端：使用相对路径
+    return ''
+  }
+  // 服务器端：使用 Docker 内部地址
+  return process.env.NEXT_PUBLIC_API_URL || 'http://api-gateway:4000'
+}
 
 class AuthAPI {
   private getAccessToken(): string | null {
     if (typeof window === 'undefined') return null
-    return localStorage.getItem('accessToken')
+    // 兼容两种 key：token 和 accessToken
+    return localStorage.getItem('token') || localStorage.getItem('accessToken')
   }
 
   private getRefreshToken(): string | null {
@@ -22,18 +32,22 @@ class AuthAPI {
 
   private setTokens(accessToken: string, refreshToken: string) {
     if (typeof window === 'undefined') return
+    // 同时设置两种 key，保持兼容性
+    localStorage.setItem('token', accessToken)
     localStorage.setItem('accessToken', accessToken)
     localStorage.setItem('refreshToken', refreshToken)
   }
 
   private clearTokens() {
     if (typeof window === 'undefined') return
+    localStorage.removeItem('token')
     localStorage.removeItem('accessToken')
     localStorage.removeItem('refreshToken')
   }
 
   async register(data: RegisterRequest): Promise<AuthResponse> {
-    const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
+    const baseUrl = getApiBaseUrl()
+    const response = await fetch(`${baseUrl}/api/auth/register`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -52,7 +66,8 @@ class AuthAPI {
   }
 
   async login(data: LoginRequest): Promise<AuthResponse> {
-    const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+    const baseUrl = getApiBaseUrl()
+    const response = await fetch(`${baseUrl}/api/auth/login`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -80,7 +95,8 @@ class AuthAPI {
       throw new Error('No refresh token')
     }
 
-    const response = await fetch(`${API_BASE_URL}/api/auth/refresh`, {
+    const baseUrl = getApiBaseUrl()
+    const response = await fetch(`${baseUrl}/api/auth/refresh`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -107,7 +123,8 @@ class AuthAPI {
       throw new Error('No access token')
     }
 
-    const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
+    const baseUrl = getApiBaseUrl()
+    const response = await fetch(`${baseUrl}/api/auth/me`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -121,7 +138,7 @@ class AuthAPI {
           const newToken = this.getAccessToken()
           if (!newToken) throw new Error('No access token after refresh')
           
-          const retryResponse = await fetch(`${API_BASE_URL}/api/auth/me`, {
+          const retryResponse = await fetch(`${baseUrl}/api/auth/me`, {
             headers: {
               Authorization: `Bearer ${newToken}`,
             },

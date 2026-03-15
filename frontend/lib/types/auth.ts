@@ -5,6 +5,7 @@ export interface User {
   role: 'user' | 'admin'
   createdAt: string
   lastLoginAt?: string
+  avatarUrl?: string
 }
 
 export interface Token {

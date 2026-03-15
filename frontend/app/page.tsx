@@ -2,37 +2,23 @@
 
 import { useState, useEffect } from 'react'
 import NewsList from '@/components/NewsList'
-import SearchBox from '@/components/SearchBox'
-import CategoryFilter from '@/components/CategoryFilter'
-import { RefreshCw, User, LogOut, Heart, Settings } from 'lucide-react'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import Recommendations from '@/components/Recommendations'
+import TrendingTopics from '@/components/TrendingTopics'
+import { RefreshCw, User, LogOut, Heart, Menu, X } from 'lucide-react'
 import { useAuthStore } from '@/lib/stores/authStore'
 import Link from 'next/link'
-
-// Create QueryClient outside component to avoid recreating on every render
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      refetchOnWindowFocus: false,
-      staleTime: 5 * 60 * 1000, // 5 minutes
-    },
-  },
-})
 
 export default function HomePage() {
   const [category, setCategory] = useState<string | undefined>()
   const [sort, setSort] = useState<'latest' | 'hot'>('latest')
-  const [key, setKey] = useState(0) // Key to force refetch
-  
+  const [key, setKey] = useState(0)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+
   const { user, isAuthenticated, fetchUser, logout } = useAuthStore()
 
-  // Fetch user on mount
   useEffect(() => {
     fetchUser()
   }, [fetchUser])
-
-  // SearchBox handles navigation to /search page internally
-  // This callback is just for any additional side effects if needed
 
   const handleRefresh = () => {
     setKey((prev) => prev + 1)
@@ -40,169 +26,190 @@ export default function HomePage() {
 
   const handleLogout = () => {
     logout()
+    setMobileMenuOpen(false)
   }
 
-  return (
-    <QueryClientProvider client={queryClient}>
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
-        {/* Header */}
-        <header className="bg-white/80 backdrop-blur-md shadow-sm sticky top-0 z-50">
-          <div className="max-w-7xl mx-auto px-4 py-4">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                  📰
-                  <span>AI News Hub</span>
-                </h1>
-                <p className="text-sm text-gray-500 mt-1">
-                  智能新闻聚合平台
-                </p>
-              </div>
+  const categories = [
+    { id: 'all', name: '全部' },
+    { id: 'technology', name: '科技' },
+    { id: 'ai', name: 'AI' },
+    { id: 'business', name: '商业' },
+    { id: 'startups', name: '创业' },
+    { id: 'finance', name: '金融' },
+  ]
 
-              <div className="flex items-center gap-3">
-                {/* Sort Toggle */}
-                <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="sticky top-0 z-50 bg-white border-b border-gray-200">
+        <div className="max-w-3xl mx-auto">
+          {/* Top Bar */}
+          <div className="flex items-center justify-between px-4 py-3">
+            <Link href="/" className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-gray-900 rounded-lg flex items-center justify-center text-white">
+                <span className="text-sm font-bold">N</span>
+              </div>
+              <span className="font-bold text-gray-900">AI News</span>
+            </Link>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleRefresh}
+                className="p-2 text-gray-500 hover:text-gray-700 rounded-lg"
+              >
+                <RefreshCw size={18} />
+              </button>
+
+              {isAuthenticated && user ? (
+                <div className="flex items-center gap-2">
+                  <Link href="/favorites" className="p-2 text-gray-500 hover:text-gray-700">
+                    <Heart size={18} />
+                  </Link>
+                  <Link href="/settings" className="flex items-center gap-1 px-2 py-1 rounded-lg bg-gray-100">
+                    {user.avatarUrl ? (
+                      <img src={user.avatarUrl} className="w-5 h-5 rounded-full" alt="" />
+                    ) : (
+                      <User size={14} />
+                    )}
+                    <span className="text-sm text-gray-700">{user.username}</span>
+                  </Link>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1">
+                  <Link href="/login" className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-900">
+                    登录
+                  </Link>
+                  <Link href="/register" className="px-3 py-1.5 text-sm bg-gray-900 text-white rounded-lg">
+                    注册
+                  </Link>
+                </div>
+              )}
+
+              <button
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="md:hidden p-2 text-gray-500"
+              >
+                {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+              </button>
+            </div>
+          </div>
+
+          {/* Category Tabs - Scrollable */}
+          <div className="px-4 pb-3 overflow-x-auto">
+            <div className="flex gap-2">
+              {categories.map((cat) => {
+                const isSelected = (category === cat.id) || (category === undefined && cat.id === 'all')
+                return (
                   <button
-                    onClick={() => setSort('latest')}
-                    className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${
-                      sort === 'latest'
-                        ? 'bg-white text-blue-600 shadow-sm'
-                        : 'text-gray-600 hover:text-gray-900'
+                    key={cat.id}
+                    onClick={() => {
+                      setCategory(cat.id === 'all' ? undefined : cat.id)
+                      setKey((prev) => prev + 1)
+                    }}
+                    className={`px-3 py-1.5 text-sm font-medium whitespace-nowrap rounded-full transition-colors ${
+                      isSelected
+                        ? 'bg-gray-900 text-white'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                     }`}
                   >
-                    最新
+                    {cat.name}
                   </button>
-                  <button
-                    onClick={() => setSort('hot')}
-                    className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${
-                      sort === 'hot'
-                        ? 'bg-white text-red-600 shadow-sm'
-                        : 'text-gray-600 hover:text-gray-900'
-                    }`}
-                  >
-                    热门
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Sort Toggle */}
+          <div className="px-4 pb-3">
+            <div className="flex items-center gap-1 p-1 bg-gray-100 rounded-lg w-fit">
+              <button
+                onClick={() => setSort('latest')}
+                className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                  sort === 'latest' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
+                }`}
+              >
+                最新
+              </button>
+              <button
+                onClick={() => setSort('hot')}
+                className={`px-3 py-1 text-sm rounded-md transition-colors ${
+                  sort === 'hot' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500'
+                }`}
+              >
+                热门
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Mobile Menu */}
+        {mobileMenuOpen && (
+          <div className="md:hidden border-t border-gray-200 bg-white">
+            <nav className="px-4 py-4 space-y-3">
+              <Link href="/" className="block py-2 text-gray-900" onClick={() => setMobileMenuOpen(false)}>
+                首页
+              </Link>
+              <Link href="/category/technology" className="block py-2 text-gray-600" onClick={() => setMobileMenuOpen(false)}>
+                科技
+              </Link>
+              <Link href="/category/ai" className="block py-2 text-gray-600" onClick={() => setMobileMenuOpen(false)}>
+                AI
+              </Link>
+              <Link href="/category/business" className="block py-2 text-gray-600" onClick={() => setMobileMenuOpen(false)}>
+                商业
+              </Link>
+
+              {isAuthenticated && user ? (
+                <div className="pt-3 border-t border-gray-100 space-y-3">
+                  <Link href="/favorites" className="flex items-center gap-2 py-2 text-gray-600" onClick={() => setMobileMenuOpen(false)}>
+                    <Heart size={18} /> 我的收藏
+                  </Link>
+                  <button onClick={handleLogout} className="flex items-center gap-2 py-2 text-red-600">
+                    <LogOut size={18} /> 退出
                   </button>
                 </div>
+              ) : (
+                <div className="pt-3 border-t border-gray-100 space-y-2">
+                  <Link href="/login" className="block py-2 text-center text-gray-600" onClick={() => setMobileMenuOpen(false)}>
+                    登录
+                  </Link>
+                  <Link href="/register" className="block py-2 text-center bg-gray-900 text-white rounded-lg" onClick={() => setMobileMenuOpen(false)}>
+                    注册
+                  </Link>
+                </div>
+              )}
+            </nav>
+          </div>
+        )}
+      </header>
 
-                {/* Refresh Button */}
-                <button
-                  onClick={handleRefresh}
-                  className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
-                  title="刷新"
-                >
-                  <RefreshCw size={20} />
-                </button>
+      {/* Main Content */}
+      <main className="max-w-3xl mx-auto px-4 py-4">
+        {/* Trending Topics */}
+        <TrendingTopics />
+        
+        {/* Personalized Recommendations */}
+        <Recommendations />
+        
+        <NewsList
+          category={category}
+          sort={sort}
+          refreshKey={key}
+        />
+      </main>
 
-                {/* Auth Buttons */}
-                {isAuthenticated && user ? (
-                  <div className="flex items-center gap-2">
-                    <Link
-                      href="/favorites"
-                      className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
-                      title="我的收藏"
-                    >
-                      <Heart size={20} />
-                    </Link>
-                    <Link
-                      href="/settings"
-                      className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
-                      title="设置"
-                    >
-                      <Settings size={20} />
-                    </Link>
-                    <Link
-                      href="/settings"
-                      className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
-                    >
-                      {user.avatarUrl ? (
-                        <img 
-                          src={user.avatarUrl} 
-                          alt={user.username} 
-                          className="w-5 h-5 rounded-full object-cover"
-                        />
-                      ) : (
-                        <User size={16} className="text-blue-600" />
-                      )}
-                      <span className="text-sm font-medium text-blue-600">
-                        {user.username}
-                      </span>
-                    </Link>
-                    <button
-                      onClick={handleLogout}
-                      className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
-                      title="退出"
-                    >
-                      <LogOut size={20} />
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <Link
-                      href="/login"
-                      className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
-                    >
-                      登录
-                    </Link>
-                    <Link
-                      href="/register"
-                      className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-all"
-                    >
-                      注册
-                    </Link>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Search and Filter */}
-            <div className="flex flex-col lg:flex-row items-start gap-4">
-              {/* Search Box */}
-              <div className="flex-1 lg:max-w-md">
-                <SearchBox />
-              </div>
-
-              {/* Category Filter */}
-              <div className="flex-1 lg:flex-none lg:ml-auto overflow-x-auto">
-                <CategoryFilter
-                  selectedCategory={category}
-                  onSelectCategory={(cat) => {
-                    setCategory(cat)
-                    setKey((prev) => prev + 1)
-                  }}
-                />
-              </div>
+      {/* Footer */}
+      <footer className="border-t border-gray-200 bg-white mt-8">
+        <div className="max-w-3xl mx-auto px-4 py-8">
+          <div className="flex items-center justify-between text-sm text-gray-500">
+            <span>© 2026 AI News Hub</span>
+            <div className="flex items-center gap-4">
+              <Link href="/about" className="hover:text-gray-700">关于</Link>
+              <Link href="/privacy" className="hover:text-gray-700">隐私</Link>
             </div>
           </div>
-        </header>
-
-        {/* Main Content */}
-        <main className="max-w-7xl mx-auto px-4 py-8">
-          <NewsList
-            key={`${category}-${sort}-${key}`}
-            category={category}
-            sort={sort}
-          />
-        </main>
-
-        {/* Footer */}
-        <footer className="bg-white border-t border-gray-200 mt-12">
-          <div className="max-w-7xl mx-auto px-4 py-6">
-            <div className="flex items-center justify-between">
-              <div className="text-sm text-gray-500">
-                <p>© 2026 AI News Hub. All rights reserved.</p>
-              </div>
-              <div className="flex items-center gap-4 text-sm text-gray-500">
-                <a href="/about" className="hover:text-blue-600 transition-colors">
-                  关于
-                </a>
-                <a href="/privacy" className="hover:text-blue-600 transition-colors">
-                  隐私政策
-                </a>
-              </div>
-            </div>
-          </div>
-        </footer>
-      </div>
-    </QueryClientProvider>
+        </div>
+      </footer>
+    </div>
   )
 }

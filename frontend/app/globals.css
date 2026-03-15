@@ -2,12 +2,77 @@
 @tailwind components;
 @tailwind utilities;
 
+@import './design-system.css';
+
+/* 强制使用浅色主题，确保标题可见 */
 :root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
-  --background-end-rgb: 255, 255, 255;
+  --color-paper: #FAF9F6 !important;
+  --color-ink: #1A1A1A !important;
+  --color-ink-light: #4A4A4A !important;
+  --color-ink-muted: #8A8A8A !important;
+  --color-border: #E8E4DF !important;
+  --color-border-dark: #D0CCC7 !important;
 }
 
 body {
-  color: rgb(var(--foreground-rgb));
+  color: #1A1A1A !important;
+  background-color: #FAF9F6 !important;
+}
+
+/* 确保标题颜色清晰 */
+h1, h2, h3, h4, h5, h6 {
+  color: #1A1A1A !important;
+}
+
+/* Custom Utilities */
+@layer utilities {
+  .text-accent-primary {
+    color: #C45C26;
+  }
+
+  .text-ink {
+    color: #1A1A1A !important;
+  }
+
+  .text-ink-light {
+    color: #4A4A4A;
+  }
+
+  .text-ink-muted {
+    color: #8A8A8A;
+  }
+
+  .bg-paper {
+    background-color: #FAF9F6;
+  }
+
+  .bg-ink {
+    background-color: #1A1A1A;
+  }
+
+  .bg-ink-light {
+    background-color: #4A4A4A;
+  }
+
+  .border-editorial {
+    border-color: #E8E4DF;
+  }
+
+  /* Scrollbar Styling */
+  .editorial-scrollbar::-webkit-scrollbar {
+    width: 8px;
+  }
+
+  .editorial-scrollbar::-webkit-scrollbar-track {
+    background: #FAF9F6;
+  }
+
+  .editorial-scrollbar::-webkit-scrollbar-thumb {
+    background: #D0CCC7;
+    border-radius: 4px;
+  }
+
+  .editorial-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #8A8A8A;
+  }
 }

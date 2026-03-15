@@ -1,9 +1,14 @@
 'use client'
 
+import { useSearchParams } from 'next/navigation'
 import SearchBar from '@/components/SearchBar'
 import SearchResults from '@/components/SearchResults'
 
 export default function SearchPage() {
+  const searchParams = useSearchParams()
+  const query = searchParams.get('q') || undefined
+  const page = searchParams.get('page') || undefined
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 py-12">
       <div className="max-w-4xl mx-auto px-4">
@@ -22,7 +27,7 @@ export default function SearchPage() {
 
         {/* Search Results */}
         <div className="mt-8">
-          <SearchResults />
+          <SearchResults q={query} page={page} />
         </div>
       </div>
     </div>

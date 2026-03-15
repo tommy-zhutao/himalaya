@@ -14,13 +14,29 @@ interface AuthState {
   logout: () => void
   fetchUser: () => Promise<void>
   clearError: () => void
+  checkAuth: () => void
+}
+
+// 检查 localStorage 是否有 token
+const getInitialAuthState = () => {
+  if (typeof window === 'undefined') {
+    return false
+  }
+  return !!localStorage.getItem('token') || !!localStorage.getItem('accessToken')
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
-  isAuthenticated: false,
+  isAuthenticated: typeof window !== 'undefined' ? getInitialAuthState() : false,
   isLoading: false,
   error: null,
+
+  checkAuth: () => {
+    if (typeof window !== 'undefined') {
+      const hasToken = !!localStorage.getItem('token') || !!localStorage.getItem('accessToken')
+      set({ isAuthenticated: hasToken })
+    }
+  },
 
   login: async (email: string, password: string) => {
     set({ isLoading: true, error: null })

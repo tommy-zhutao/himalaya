@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
-import axios from 'axios'
 import NewsCard from './NewsCard'
+import { getNews, NewsListResponse } from '@/lib/news'
 
 interface News {
   id: number
@@ -16,53 +16,31 @@ interface News {
   imageUrl?: string | null
   category?: string | null
   tags?: string[]
-}
-
-interface NewsResponse {
-  data: News[]
-  pagination: {
-    page: number
-    limit: number
-    total: number
-    totalPages: number
-    hasNext: boolean
-    hasPrev: boolean
-  }
+  // AI 分析字段
+  aiSummary?: string | null
+  keywords?: string[]
+  sentiment?: 'positive' | 'negative' | 'neutral' | null
+  qualityScore?: number | null
 }
 
 interface NewsListProps {
   category?: string
   sourceId?: number
   sort?: 'latest' | 'hot'
+  refreshKey?: number // 添加 refreshKey prop
 }
 
-export default function NewsList({ category, sourceId, sort = 'latest' }: NewsListProps) {
-  // Build query params
-  const buildParams = (page: number) => {
-    const params: any = {
-      page,
-      limit: 20,
-      sort,
-    }
-    if (category) params.category = category
-    if (sourceId) params.sourceId = sourceId
-    return params
-  }
-
-  // Fetch news
+export default function NewsList({ category, sourceId, sort = 'latest', refreshKey }: NewsListProps) {
+  // Fetch news - 把 refreshKey 加入 queryKey，这样刷新时会重新请求
   const {
     data,
     isLoading,
     isError,
     error,
     refetch,
-  } = useQuery<NewsResponse>({
-    queryKey: ['news', category, sourceId, sort],
-    queryFn: async () => {
-      const params = buildParams(1)
-      const response = await axios.get('/api/news', { params })
-      return response.data
-    },
+  } = useQuery<NewsListResponse>({
+    queryKey: ['news', category, sourceId, sort, refreshKey],
+    queryFn: () => getNews({ page: 1, limit: 20, category, sourceId, sort }),
     refetchOnWindowFocus: false,
   })
 
@@ -140,13 +118,16 @@ export default function NewsList({ category, sourceId, sort = 'latest' }: NewsLi
             key={item.id}
             id={item.id}
             title={item.title}
-            summary={item.summary}
-            author={item.author}
+            summary={item.summary || ''}
+            author={item.author || 'Unknown'}
             source={item.source}
             publishedAt={item.publishedAt}
             imageUrl={item.imageUrl}
             category={item.category}
             tags={item.tags}
+            keywords={item.keywords}
+            sentiment={item.sentiment}
+            qualityScore={item.qualityScore}
           />
         ))}
       </div>
