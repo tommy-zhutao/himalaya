@@ -1,6 +1,7 @@
 import { Router, Response } from 'express'
 import { prisma } from '../lib/prisma'
 import { verifyToken, TokenPayload } from '../lib/jwt'
+import bcrypt from 'bcrypt'
 
 const router = Router()
 
@@ -32,7 +33,7 @@ router.put('/me', async (req, res: Response) => {
       })
     }
 
-    const { username, avatarUrl, preferences } = req.body
+    const { username, avatarUrl, preferences, currentPassword, newPassword } = req.body
 
     // Get current user
     const existing = await prisma.user.findUnique({
@@ -57,11 +58,30 @@ router.put('/me', async (req, res: Response) => {
       }
     }
 
+    // If changing password, verify current password
+    if (currentPassword && newPassword) {
+      const isValidPassword = await bcrypt.compare(currentPassword, existing.passwordHash)
+      if (!isValidPassword) {
+        return res.status(400).json({
+          error: '当前密码不正确',
+        })
+      }
+      if (newPassword.length < 6) {
+        return res.status(400).json({
+          error: '新密码至少需要 6 个字符',
+        })
+      }
+    }
+
     // Build update data
     const updateData: any = {}
     if (username) updateData.username = username
     if (avatarUrl !== undefined) updateData.avatarUrl = avatarUrl
     if (preferences !== undefined) updateData.preferences = preferences
+    if (newPassword) {
+      const salt = await bcrypt.genSalt(10)
+      updateData.passwordHash = await bcrypt.hash(newPassword, salt)
+    }
 
     // Update user
     const user = await prisma.user.update({

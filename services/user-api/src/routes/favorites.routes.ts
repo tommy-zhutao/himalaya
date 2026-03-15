@@ -88,6 +88,42 @@ router.get('/', async (req, res) => {
 })
 
 /**
+ * GET /api/users/favorites/check/:id
+ * Check if a news is in user's favorites
+ */
+router.get('/check/:id', async (req, res) => {
+  try {
+    const userId = (req as AuthRequest).user!.userId
+    const newsId = parseInt(req.params.id)
+
+    if (isNaN(newsId)) {
+      return res.status(400).json({
+        error: '无效的新闻 ID',
+      })
+    }
+
+    const favorite = await prisma.userFavorite.findUnique({
+      where: {
+        userId_newsId: {
+          userId,
+          newsId,
+        },
+      },
+    })
+
+    res.json({
+      isFavorite: !!favorite,
+    })
+  } catch (error: any) {
+    console.error('Check favorite error:', error)
+    res.status(500).json({
+      error: '检查收藏状态失败',
+      message: error.message,
+    })
+  }
+})
+
+/**
  * POST /api/users/favorites/:id
  * Add a news to favorites (idempotent)
  */

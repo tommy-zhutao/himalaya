@@ -1,12 +1,15 @@
 FROM node:20-alpine
 
+# Install OpenSSL for Prisma
+RUN apk add --no-cache openssl
+
 WORKDIR /app
 
-# Install dependencies
+# Install all dependencies (including dev for build)
 COPY package*.json ./
-RUN npm ci --only=production
+RUN npm install
 
-# Copy TypeScript and source files
+# Copy TypeScript config, source, and prisma
 COPY tsconfig.json ./
 COPY src ./src
 COPY prisma ./prisma
@@ -17,8 +20,9 @@ RUN npx prisma generate
 # Build TypeScript
 RUN npm run build
 
-# Expose port
+# Remove dev dependencies (keep prisma CLI for runtime if needed)
+RUN npm prune --omit=dev
+
 EXPOSE 4001
 
-# Start server
 CMD ["node", "dist/index.js"]

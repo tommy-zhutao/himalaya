@@ -45,8 +45,8 @@ class ProxyService {
 
     try {
       // Build target URL
-      const targetPath = req.path.replace(`/api/${serviceName}`, '')
-      const targetUrl = `${service.baseUrl}${targetPath}`
+      // Keep the full path including /api/news, /api/auth, etc.
+      const targetUrl = `${service.baseUrl}${req.path}`
 
       // Build request config
       const config: AxiosRequestConfig = {

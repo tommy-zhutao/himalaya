@@ -1,5 +1,6 @@
 import Parser from 'rss-parser'
 import { prisma } from '../lib/prisma'
+import { analyzeNews } from './ai-client'
 
 const parser = new Parser({
   timeout: 10000, // 10 seconds timeout
@@ -8,6 +9,69 @@ const parser = new Parser({
   },
 })
 
+/**
+ * Calculate title similarity using Levenshtein distance
+ * Returns a value between 0 and 1 (1 = identical)
+ */
+function calculateTitleSimilarity(title1: string, title2: string): number {
+  const s1 = title1.toLowerCase().trim()
+  const s2 = title2.toLowerCase().trim()
+  
+  if (s1 === s2) return 1
+  
+  const len1 = s1.length
+  const len2 = s2.length
+  
+  if (len1 === 0 || len2 === 0) return 0
+  
+  // Simple word overlap for performance
+  const words1 = new Set(s1.split(/\s+/))
+  const words2 = new Set(s2.split(/\s+/))
+  
+  const intersection = new Set([...words1].filter(w => words2.has(w)))
+  const union = new Set([...words1, ...words2])
+  
+  return intersection.size / union.size
+}
+
+/**
+ * Check for duplicate news by title similarity
+ * Returns the existing news if duplicate found, null otherwise
+ */
+async function checkDuplicate(title: string, sourceId: number): Promise<{ id: number; title: string; similarity: number } | null> {
+  // Check recent news from the last 7 days
+  const recentDate = new Date()
+  recentDate.setDate(recentDate.getDate() - 7)
+  
+  const recentNews = await prisma.news.findMany({
+    where: {
+      createdAt: { gte: recentDate },
+    },
+    select: {
+      id: true,
+      title: true,
+      sourceId: true,
+    },
+    take: 500, // Limit for performance
+  })
+  
+  let bestMatch: { id: number; title: string; similarity: number } | null = null
+  
+  for (const news of recentNews) {
+    const similarity = calculateTitleSimilarity(title, news.title)
+    
+    // Threshold: 0.7 similarity = likely duplicate
+    // Same source: 0.6 threshold (more likely to be duplicate from same source)
+    const threshold = news.sourceId === sourceId ? 0.6 : 0.7
+    
+    if (similarity >= threshold && (!bestMatch || similarity > bestMatch.similarity)) {
+      bestMatch = { id: news.id, title: news.title, similarity }
+    }
+  }
+  
+  return bestMatch
+}
+
 export interface FetchResult {
   sourceId: number
   sourceName: string
@@ -15,6 +79,7 @@ export interface FetchResult {
   itemsFetched: number
   itemsCreated: number
   itemsUpdated: number
+  itemsSkipped: number  // Duplicates skipped
   errorMessage?: string
 }
 
@@ -38,6 +103,7 @@ export async function fetchRSSFeed(sourceId: number): Promise<FetchResult> {
       itemsFetched: 0,
       itemsCreated: 0,
       itemsUpdated: 0,
+      itemsSkipped: 0,
       errorMessage: 'Source is disabled',
     }
   }
@@ -49,6 +115,7 @@ export async function fetchRSSFeed(sourceId: number): Promise<FetchResult> {
     itemsFetched: 0,
     itemsCreated: 0,
     itemsUpdated: 0,
+    itemsSkipped: 0,
   }
 
   try {
@@ -79,7 +146,7 @@ export async function fetchRSSFeed(sourceId: number): Promise<FetchResult> {
         content: (item as any)['content:encoded'] || item.content || (item as any).contentSnippet || '',
         author: (item as any).creator || (item as any).author || feed.title || source.name,
         publishedAt: (item as any).pubDate ? new Date((item as any).pubDate) : new Date(),
-        category: (item as any).categories?.[0] || source.category,
+        category: source.category || 'technology', // 使用新闻源的分类，而不是 RSS feed 的分类
         tags: (item as any).categories || [],
         sourceId: source.id,
       }
@@ -99,11 +166,49 @@ export async function fetchRSSFeed(sourceId: number): Promise<FetchResult> {
         })
         result.itemsUpdated++
       } else {
+        // Check for duplicate by title similarity
+        const duplicate = await checkDuplicate(newsData.title, source.id)
+        
+        if (duplicate) {
+          console.log(`  🔄 Skipped duplicate (${(duplicate.similarity * 100).toFixed(0)}% similar): ${newsData.title.substring(0, 50)}...`)
+          result.itemsSkipped++
+          continue
+        }
+        
         // Create new news
-        await prisma.news.create({
+        const news = await prisma.news.create({
           data: newsData,
         })
         result.itemsCreated++
+
+        // 🤖 对新创建的新闻进行 AI 分析
+        if (news.id) {
+          try {
+            const analysis = await analyzeNews(
+              newsData.title,
+              newsData.content,
+              newsData.summary
+            )
+
+            if (analysis) {
+              await prisma.news.update({
+                where: { id: news.id },
+                data: {
+                  aiSummary: analysis.aiSummary,
+                  keywords: analysis.keywords,
+                  sentiment: analysis.sentiment,
+                  category: analysis.category,
+                  qualityScore: analysis.qualityScore,
+                  analyzedAt: new Date(),
+                },
+              })
+              console.log(`  🤖 AI analyzed: ${newsData.title.substring(0, 50)}...`)
+            }
+          } catch (aiError: any) {
+            console.error(`  ⚠️  AI analysis failed for news ${news.id}:`, aiError.message)
+            // 不阻塞主流程，继续处理其他新闻
+          }
+        }
       }
     }
 
@@ -116,7 +221,7 @@ export async function fetchRSSFeed(sourceId: number): Promise<FetchResult> {
       },
     })
 
-    console.log(`✅ RSS fetched: ${source.name} - ${result.itemsCreated} created, ${result.itemsUpdated} updated`)
+    console.log(`✅ RSS fetched: ${source.name} - ${result.itemsCreated} created, ${result.itemsUpdated} updated, ${result.itemsSkipped} duplicates skipped`)
 
   } catch (error: any) {
     console.error(`❌ RSS fetch failed: ${source.name}`, error.message)
@@ -165,12 +270,14 @@ export async function fetchAllRSS(): Promise<FetchResult[]> {
 
   const totalCreated = results.reduce((sum, r) => sum + r.itemsCreated, 0)
   const totalUpdated = results.reduce((sum, r) => sum + r.itemsUpdated, 0)
+  const totalSkipped = results.reduce((sum, r) => sum + r.itemsSkipped, 0)
 
   console.log(`\n📊 RSS fetch summary:`)
   console.log(`   Total sources: ${sources.length}`)
   console.log(`   Total items fetched: ${results.reduce((sum, r) => sum + r.itemsFetched, 0)}`)
   console.log(`   Total created: ${totalCreated}`)
   console.log(`   Total updated: ${totalUpdated}`)
+  console.log(`   Duplicates skipped: ${totalSkipped}`)
   console.log(`   Success: ${results.filter(r => r.success).length}/${results.length}\n`)
 
   // Log fetch results to database

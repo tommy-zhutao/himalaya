@@ -24,7 +24,6 @@ model User {
   lastLoginAt  DateTime? @map("last_login_at")
 
   favorites    UserFavorite[]
-  readHistory  UserReadHistory[]
 
   @@map("users")
 }
@@ -78,7 +77,6 @@ model News {
 
   source       NewsSource? @relation(fields: [sourceId], references: [id], onDelete: SetNull)
   favorites    UserFavorite[]
-  readHistory  UserReadHistory[]
 
   @@index([publishedAt(sort: Desc)])
   @@index([category])
@@ -104,24 +102,6 @@ model UserFavorite {
   @@index([userId])
   @@index([newsId])
   @@map("user_favorites")
-}
-
-model UserReadHistory {
-  id        Int      @id @default(autoincrement())
-  userId    Int      @map("user_id")
-  newsId    Int      @map("news_id")
-  readAt    DateTime @default(now()) @map("read_at")
-  duration  Int?     @map("duration") // 阅读时长（秒）
-  createdAt DateTime @default(now()) @map("created_at")
-
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  news      News     @relation(fields: [newsId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, newsId])
-  @@index([userId])
-  @@index([newsId])
-  @@index([readAt(sort: Desc)])
-  @@map("user_read_history")
 }
 
 model FetchLog {

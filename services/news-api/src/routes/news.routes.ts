@@ -163,8 +163,330 @@ router.get('/hot', async (req, res) => {
 })
 
 /**
+ * Calculate Jaccard similarity between two keyword arrays
+ * Jaccard similarity = |A ∩ B| / |A ∪ B|
+ */
+function calculateKeywordSimilarity(keywords1: string[], keywords2: string[]): number {
+  if (!keywords1?.length || !keywords2?.length) return 0
+
+  const set1 = new Set(keywords1.map(k => k.toLowerCase()))
+  const set2 = new Set(keywords2.map(k => k.toLowerCase()))
+
+  const intersection = new Set([...set1].filter(k => set2.has(k)))
+  const union = new Set([...set1, ...set2])
+
+  return intersection.size / union.size
+}
+
+/**
+ * GET /api/news/recommendations
+ * Get personalized recommendations based on user's reading history
+ * Requires authentication via API Gateway (X-User-Id header)
+ */
+router.get('/recommendations', async (req, res) => {
+  try {
+    // Get user ID from header (set by API Gateway after auth)
+    // Support both x-user-id (lowercase) and X-User-Id (capitalized)
+    const userId = req.headers['x-user-id'] || req.headers['X-User-Id']
+    const limit = Math.min(parseInt(req.query.limit as string) || 10, 20)
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Authentication required' })
+    }
+
+    // Try to get from cache
+    const cacheKey = `news:recommendations:${userId}:${limit}`
+    const cached = await get<any>(cacheKey)
+    if (cached) {
+      console.log(`[Cache] hit: ${cacheKey}`)
+      return res.json(cached)
+    }
+    console.log(`[Cache] miss: ${cacheKey}`)
+
+    // Get user's reading history (recent 50 articles)
+    const readHistory = await prisma.userReadHistory.findMany({
+      where: { userId: Number(userId) },
+      orderBy: { readAt: 'desc' },
+      take: 50,
+      include: {
+        news: {
+          select: {
+            id: true,
+            keywords: true,
+            category: true,
+            sourceId: true,
+          },
+        },
+      },
+    })
+
+    // Get user's favorites (they indicate strong interest)
+    const favorites = await prisma.userFavorite.findMany({
+      where: { userId: Number(userId) },
+      include: {
+        news: {
+          select: {
+            id: true,
+            keywords: true,
+            category: true,
+            sourceId: true,
+          },
+        },
+      },
+    })
+
+    // Build user interest profile
+    const readNewsIds = new Set(readHistory.map(h => h.newsId))
+    const favoriteNewsIds = new Set(favorites.map(f => f.newsId))
+    const allReadNewsIds = new Set([...readNewsIds, ...favoriteNewsIds])
+
+    // Extract user's preferred keywords
+    const keywordCounts: Record<string, number> = {}
+    const categoryCounts: Record<string, number> = {}
+    const sourceCounts: Record<string, number> = {}
+
+    // Weight favorites more heavily
+    const processNews = (news: any, weight: number) => {
+      const keywords = (news.keywords as string[]) || []
+      keywords.forEach(k => {
+        keywordCounts[k.toLowerCase()] = (keywordCounts[k.toLowerCase()] || 0) + weight
+      })
+      if (news.category) {
+        categoryCounts[news.category] = (categoryCounts[news.category] || 0) + weight
+      }
+      if (news.sourceId) {
+        sourceCounts[news.sourceId] = (sourceCounts[news.sourceId] || 0) + weight
+      }
+    }
+
+    readHistory.forEach(h => processNews(h.news, 1))
+    favorites.forEach(f => processNews(f.news, 3)) // Favorites have 3x weight
+
+    // Get top keywords
+    const topKeywords = Object.entries(keywordCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 20)
+      .map(([k]) => k)
+
+    // If no reading history, return hot news
+    if (allReadNewsIds.size === 0) {
+      const hotNews = await prisma.news.findMany({
+        where: { publishedAt: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } },
+        orderBy: { viewCount: 'desc' },
+        take: limit,
+        include: {
+          source: { select: { id: true, name: true, type: true } },
+        },
+      })
+      const result = { data: hotNews, reason: 'hot' }
+      await set(cacheKey, result, CACHE_TTL.HOT)
+      return res.json(result)
+    }
+
+    // Find candidate news (exclude already read)
+    const candidates = await prisma.news.findMany({
+      where: {
+        id: { notIn: [...allReadNewsIds] },
+        publishedAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) }, // Last 30 days
+      },
+      take: 200,
+      include: {
+        source: { select: { id: true, name: true, type: true } },
+      },
+    })
+
+    // Score candidates
+    const scoredNews = candidates.map(news => {
+      const newsKeywords = ((news.keywords as string[]) || []).map(k => k.toLowerCase())
+      let score = 0
+
+      // 1. Keyword match (weight: 0.5)
+      if (topKeywords.length > 0 && newsKeywords.length > 0) {
+        const matchedKeywords = newsKeywords.filter(k => topKeywords.includes(k))
+        score += (matchedKeywords.length / Math.min(topKeywords.length, newsKeywords.length)) * 0.5
+      }
+
+      // 2. Category preference (weight: 0.3)
+      if (news.category && categoryCounts[news.category]) {
+        const maxCategoryCount = Math.max(...Object.values(categoryCounts))
+        score += (categoryCounts[news.category] / maxCategoryCount) * 0.3
+      }
+
+      // 3. Source preference (weight: 0.2)
+      if (news.sourceId && sourceCounts[news.sourceId]) {
+        const maxSourceCount = Math.max(...Object.values(sourceCounts))
+        score += (sourceCounts[news.sourceId] / maxSourceCount) * 0.2
+      }
+
+      // 4. Quality bonus
+      if (news.qualityScore && news.qualityScore > 80) {
+        score += 0.1
+      }
+
+      // 5. Recency bonus
+      const daysSincePublished = news.publishedAt
+        ? (Date.now() - new Date(news.publishedAt).getTime()) / (1000 * 60 * 60 * 24)
+        : 30
+      if (daysSincePublished < 1) score += 0.1
+      else if (daysSincePublished < 3) score += 0.05
+
+      return { news, score }
+    })
+
+    // Sort by score and take top results
+    const recommendations = scoredNews
+      .sort((a, b) => b.score - a.score)
+      .slice(0, limit)
+      .map(item => item.news)
+
+    const result = { data: recommendations, reason: 'personalized' }
+
+    // Cache for 5 minutes
+    await set(cacheKey, result, CACHE_TTL.RELATED)
+
+    res.json(result)
+  } catch (error) {
+    console.error('Error fetching recommendations:', error)
+    res.status(500).json({ error: 'Failed to fetch recommendations' })
+  }
+})
+
+/**
+ * POST /api/news/:id/read
+ * Record that user has read a news article
+ */
+router.post('/:id/read', async (req, res) => {
+  try {
+    const newsId = parseInt(req.params.id)
+    const userId = req.headers['x-user-id']
+    const duration = req.body.duration // Optional: reading duration in seconds
+
+    if (!userId) {
+      return res.status(401).json({ error: 'Authentication required' })
+    }
+
+    if (isNaN(newsId)) {
+      return res.status(400).json({ error: 'Invalid news ID' })
+    }
+
+    // Check if news exists
+    const news = await prisma.news.findUnique({ where: { id: newsId } })
+    if (!news) {
+      return res.status(404).json({ error: 'News not found' })
+    }
+
+    // Upsert read history
+    await prisma.userReadHistory.upsert({
+      where: {
+        userId_newsId: {
+          userId: Number(userId),
+          newsId,
+        },
+      },
+      update: {
+        readAt: new Date(),
+        duration: duration || undefined,
+      },
+      create: {
+        userId: Number(userId),
+        newsId,
+        duration: duration || undefined,
+      },
+    })
+
+    res.json({ success: true, message: 'Read history recorded' })
+  } catch (error) {
+    console.error('Error recording read history:', error)
+    res.status(500).json({ error: 'Failed to record read history' })
+  }
+})
+
+/**
+ * GET /api/news/trending-topics
+ * Get trending topics based on keyword frequency
+ */
+router.get('/trending-topics', async (req, res) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit as string) || 10, 30)
+    const days = parseInt(req.query.days as string) || 3
+
+    // Try to get from cache
+    const cacheKey = `news:trending:${limit}:${days}`
+    const cached = await get<any>(cacheKey)
+    if (cached) {
+      console.log(`[Cache] hit: ${cacheKey}`)
+      return res.json(cached)
+    }
+    console.log(`[Cache] miss: ${cacheKey}`)
+
+    // Get recent news with keywords
+    const startDate = new Date()
+    startDate.setDate(startDate.getDate() - days)
+
+    const recentNews = await prisma.news.findMany({
+      where: {
+        publishedAt: { gte: startDate },
+        NOT: { keywords: { equals: [] } },
+      },
+      select: {
+        id: true,
+        title: true,
+        keywords: true,
+        category: true,
+        viewCount: true,
+        publishedAt: true,
+      },
+      take: 500,
+    })
+
+    // Count keyword frequency
+    const keywordCounts: Record<string, { count: number; newsIds: number[]; totalViews: number }> = {}
+
+    for (const news of recentNews) {
+      const keywords = (news.keywords as string[]) || []
+      for (const keyword of keywords) {
+        const key = keyword.toLowerCase()
+        if (!keywordCounts[key]) {
+          keywordCounts[key] = { count: 0, newsIds: [], totalViews: 0 }
+        }
+        keywordCounts[key].count++
+        keywordCounts[key].newsIds.push(news.id)
+        keywordCounts[key].totalViews += news.viewCount || 0
+      }
+    }
+
+    // Score topics by frequency and views
+    const topics = Object.entries(keywordCounts)
+      .map(([keyword, data]) => ({
+        keyword,
+        count: data.count,
+        avgViews: Math.round(data.totalViews / data.count),
+        score: data.count * 0.6 + (data.totalViews / data.count) * 0.4,
+        newsIds: data.newsIds.slice(0, 5), // Top 5 related news
+      }))
+      .filter(t => t.count >= 2) // At least 2 occurrences
+      .sort((a, b) => b.score - a.score)
+      .slice(0, limit)
+
+    const result = {
+      data: topics,
+      period: { days, start: startDate, end: new Date() },
+      total: topics.length,
+    }
+
+    // Cache for 10 minutes
+    await set(cacheKey, result, CACHE_TTL.RELATED)
+
+    res.json(result)
+  } catch (error) {
+    console.error('Error fetching trending topics:', error)
+    res.status(500).json({ error: 'Failed to fetch trending topics' })
+  }
+})
+
+/**
  * GET /api/news/related/:id
- * Get related news by category or source
+ * Get related news by keywords similarity, category, and source
  */
 router.get('/related/:id', async (req, res) => {
   try {
@@ -193,30 +515,18 @@ router.get('/related/:id', async (req, res) => {
       return res.status(404).json({ error: 'News not found' })
     }
 
-    // Build where clause for related news
-    const where: any = {
-      id: { not: id }, // Exclude original news
-    }
-
-    // Try to find related news by category first
-    if (original.category) {
-      where.category = original.category
-    } else if (original.sourceId) {
-      // Fallback to same source
-      where.sourceId = original.sourceId
-    }
-
-    // If neither category nor source is available, return empty
-    if (!where.category && !where.sourceId) {
-      const emptyResult = { data: [] }
-      await set(cacheKey, emptyResult, CACHE_TTL.RELATED)
-      return res.json(emptyResult)
-    }
-
-    const related = await prisma.news.findMany({
-      where,
+    // Get candidate news (same category, source, or recent)
+    const candidates = await prisma.news.findMany({
+      where: {
+        id: { not: id },
+        OR: [
+          ...(original.category ? [{ category: original.category }] : []),
+          ...(original.sourceId ? [{ sourceId: original.sourceId }] : []),
+          { publishedAt: { gte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) } }, // Recent 7 days
+        ],
+      },
       orderBy: { publishedAt: 'desc' },
-      take: limit,
+      take: 100, // Get more candidates for similarity calculation
       include: {
         source: {
           select: {
@@ -227,6 +537,43 @@ router.get('/related/:id', async (req, res) => {
         },
       },
     })
+
+    // Get original keywords
+    const originalKeywords = (original.keywords as string[]) || []
+
+    // Calculate similarity scores
+    const scoredNews = candidates.map(news => {
+      const newsKeywords = (news.keywords as string[]) || []
+      let score = 0
+
+      // 1. Keyword similarity (weight: 0.5)
+      if (originalKeywords.length > 0 && newsKeywords.length > 0) {
+        score += calculateKeywordSimilarity(originalKeywords, newsKeywords) * 0.5
+      }
+
+      // 2. Same category (weight: 0.3)
+      if (original.category && news.category === original.category) {
+        score += 0.3
+      }
+
+      // 3. Same source (weight: 0.2)
+      if (original.sourceId && news.sourceId === original.sourceId) {
+        score += 0.2
+      }
+
+      // 4. Bonus for quality score
+      if (news.qualityScore && news.qualityScore > 70) {
+        score += 0.1
+      }
+
+      return { news, score }
+    })
+
+    // Sort by score and take top results
+    const related = scoredNews
+      .sort((a, b) => b.score - a.score)
+      .slice(0, limit)
+      .map(item => item.news)
 
     const result = { data: related }
 

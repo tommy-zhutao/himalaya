@@ -23,6 +23,6 @@ RUN npm run build
 # Remove dev dependencies
 RUN npm prune --omit=dev
 
-EXPOSE 4003
+EXPOSE 4007
 
 CMD ["node", "dist/index.js"]

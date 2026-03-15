@@ -14,7 +14,9 @@ const PORT = process.env.PORT || 4000
 
 // Middleware
 app.use(cors())
-app.use(express.json())
+// 增加 JSON 请求体大小限制到 10MB，支持头像上传
+app.use(express.json({ limit: '10mb' }))
+app.use(express.urlencoded({ limit: '10mb', extended: true }))
 app.use(loggingMiddleware)
 
 // Rate limiting (optional - requires Redis)
@@ -47,21 +49,31 @@ app.get('/health', (req, res) => {
 // Proxy routes to downstream services
 // Order matters: public routes first, then authenticated routes
 
-// News API routes (public - no authentication required for reading)
+// News API routes (mostly public - some need authentication)
+// Recommendations and read history need user authentication
+app.all('/api/news/recommendations', authMiddleware, async (req, res) => {
+  await proxyService.proxyRequest('news', req, res)
+})
+app.all('/api/news/:id/read', authMiddleware, async (req, res) => {
+  await proxyService.proxyRequest('news', req, res)
+})
+
+// Other news routes are public
 app.all('/api/news*', async (req, res) => {
   await proxyService.proxyRequest('news', req, res)
 })
 
-// Authentication middleware (applied to protected API routes only)
-app.use('/api/auth*', authMiddleware)
-app.use('/api/users*', authMiddleware)
-app.use('/api/admin*', authMiddleware)
-
-// User API routes (auth + users) - requires authentication
+// Auth routes - /register and /login are public, /me and /refresh need auth
+// User API handles auth internally, so we proxy all auth requests
 app.all('/api/auth*', async (req, res) => {
   await proxyService.proxyRequest('user', req, res)
 })
 
+// Authentication middleware (applied to protected API routes only)
+app.use('/api/users*', authMiddleware)
+app.use('/api/admin*', authMiddleware)
+
+// User API routes (users) - requires authentication
 app.all('/api/users*', async (req, res) => {
   await proxyService.proxyRequest('user', req, res)
 })
