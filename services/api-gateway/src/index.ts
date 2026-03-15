@@ -1,5 +1,6 @@
 import express from 'express'
 import cors from 'cors'
+import compression from 'compression'
 import dotenv from 'dotenv'
 import { authMiddleware } from './middleware/auth.middleware'
 import { loggingMiddleware } from './middleware/logging.middleware'
@@ -14,6 +15,17 @@ const PORT = process.env.PORT || 4000
 
 // Middleware
 app.use(cors())
+// Gzip 压缩 - 减少响应体积约 70%
+app.use(compression({
+  filter: (req, res) => {
+    if (req.headers['x-no-compression']) {
+      return false
+    }
+    return compression.filter(req, res)
+  },
+  threshold: 1024, // 只压缩大于 1KB 的响应
+  level: 6, // 压缩级别 (1-9), 6 是性能和压缩率的平衡点
+}))
 // 增加 JSON 请求体大小限制到 10MB，支持头像上传
 app.use(express.json({ limit: '10mb' }))
 app.use(express.urlencoded({ limit: '10mb', extended: true }))
