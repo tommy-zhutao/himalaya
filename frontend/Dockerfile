@@ -19,9 +19,13 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
+# 构建时参数
+ARG NEXT_PUBLIC_API_URL=http://api-gateway:4000
+
 # 设置环境变量
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 
 # 构建
 RUN npm run build

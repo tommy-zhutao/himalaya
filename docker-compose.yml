@@ -107,11 +107,14 @@ services:
       NODE_ENV: development
       DATABASE_URL: postgresql://news_admin:news_password@postgres:5432/news_app
       NEWS_API_URL: http://news-api:4001
+      AI_ANALYSIS_URL: http://ai-analysis:4008
       CRON_SCHEDULE: "*/15 * * * *"
     depends_on:
       postgres:
         condition: service_healthy
       news-api:
+        condition: service_started
+      ai-analysis:
         condition: service_started
 
   api-fetcher:
@@ -123,11 +126,14 @@ services:
       NODE_ENV: development
       DATABASE_URL: postgresql://news_admin:news_password@postgres:5432/news_app
       NEWS_API_URL: http://news-api:4001
+      AI_ANALYSIS_URL: http://ai-analysis:4008
       CRON_SCHEDULE: "0 * * * *"
     depends_on:
       postgres:
         condition: service_healthy
       news-api:
+        condition: service_started
+      ai-analysis:
         condition: service_started
 
   scheduler:
@@ -144,6 +150,39 @@ services:
       redis:
         condition: service_healthy
 
+  content-fetcher:
+    build:
+      context: ./services/content-fetcher
+      dockerfile: Dockerfile
+    container_name: news-app-content-fetcher
+    ports:
+      - "4007:4007"
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://news_admin:news_password@postgres:5432/news_app
+      CRON_SCHEDULE: "0 */6 * * *"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  ai-analysis:
+    build:
+      context: ./services/ai-analysis
+      dockerfile: Dockerfile
+    container_name: news-app-ai-analysis
+    ports:
+      - "4008:4008"
+    environment:
+      NODE_ENV: development
+      PORT: 4008
+      DATABASE_URL: postgresql://news_admin:news_password@postgres:5432/news_app
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
   frontend:
     build:
       context: ./frontend
@@ -153,7 +192,7 @@ services:
       - "3000:3000"
     environment:
       NODE_ENV: development
-      NEXT_PUBLIC_API_URL: http://localhost:4000
+      NEXT_PUBLIC_API_URL: http://api-gateway:4000
     depends_on:
       - api-gateway
 
