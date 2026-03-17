@@ -3,9 +3,13 @@ import { prisma } from '../lib/prisma'
 import { analyzeNews } from './ai-client'
 
 const parser = new Parser({
-  timeout: 10000, // 10 seconds timeout
+  timeout: 30000, // 30 seconds timeout (increased for slow RSSHub)
   customFields: {
     item: ['media:content', 'enclosure', 'author'],
+  },
+  headers: {
+    'User-Agent': 'Mozilla/5.0 (compatible; NewsHubBot/1.0; +https://newshub.app)',
+    'Accept': 'application/rss+xml, application/xml, text/xml, */*',
   },
 })
 

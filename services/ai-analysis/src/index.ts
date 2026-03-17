@@ -1,17 +1,14 @@
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import axios from 'axios';
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 4008;
 
-// 智谱 AI 配置
-const ZHIPU_API_KEY = process.env.ZHIPU_API_KEY || process.env.ARK_API_KEY || '';
-const ZHIPU_BASE_URL = process.env.ZHIPU_BASE_URL || 'https://ark.cn-beijing.volces.com/api/v3';
-const ZHIPU_MODEL = process.env.ZHIPU_MODEL || process.env.ARK_MODEL_ID || 'glm-4-7-251222';
+// AI 调用已禁用 - 仅使用本地算法
+const AI_ENABLED = false;
 
 // Middleware
 app.use(cors());
@@ -23,7 +20,7 @@ app.get('/health', (req: Request, res: Response) => {
     status: 'ok',
     service: 'ai-analysis',
     timestamp: new Date().toISOString(),
-    aiConfigured: !!ZHIPU_API_KEY,
+    aiEnabled: AI_ENABLED,
   });
 });
 
@@ -101,41 +98,10 @@ app.post('/api/analyze/batch', async (req: Request, res: Response) => {
   }
 });
 
-// 智谱 AI 调用
+// AI 调用已禁用 - 直接返回 null 使用本地算法
 async function callZhipuAI(prompt: string): Promise<string | null> {
-  if (!ZHIPU_API_KEY) {
-    console.warn('ZHIPU_API_KEY not configured, using fallback');
-    return null;
-  }
-
-  try {
-    const response = await axios.post<any>(
-      `${ZHIPU_BASE_URL}/chat/completions`,
-      {
-        model: ZHIPU_MODEL,
-        messages: [
-          {
-            role: 'user',
-            content: prompt,
-          },
-        ],
-        max_tokens: 500,
-        temperature: 0.7,
-      },
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${ZHIPU_API_KEY}`,
-        },
-        timeout: 10000,
-      }
-    );
-
-    return response.data?.choices?.[0]?.message?.content?.trim() || null;
-  } catch (error: any) {
-    console.error('Zhipu AI API error:', error.response?.data || error.message);
-    return null;
-  }
+  // AI 功能已禁用
+  return null;
 }
 
 // AI 摘要生成
@@ -316,5 +282,5 @@ function isCommonWord(word: string): boolean {
 app.listen(PORT, () => {
   console.log(`🤖 AI Analysis Service running on port ${PORT}`);
   console.log(`Health check: http://localhost:${PORT}/health`);
-  console.log(`AI Configured: ${!!ZHIPU_API_KEY}`);
+  console.log(`AI Enabled: ${AI_ENABLED}`);
 });
