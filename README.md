@@ -37,17 +37,21 @@
 - **React Query** - 数据请求
 
 ### 后端微服务
-| 服务 | 端口 | 说明 |
-|------|------|------|
-| API Gateway | 4000 | 统一网关 |
-| News API | 4001 | 新闻 CRUD |
-| User API | 4002 | 用户认证 |
-| Admin API | 4003 | 管理后台 |
-| RSS Fetcher | 4004 | RSS 抓取 |
-| API Fetcher | 4005 | API 抓取 |
-| Auth Service | 4006 | 认证服务 |
-| Scheduler | 4007 | 定时任务 |
-| AI Analysis | 4008 | AI 分析 |
+
+| 服务 | 端口 | 说明 | 健康检查 |
+|------|------|------|---------|
+| Frontend | 3000 | Next.js 前端 | `http://localhost:3000` |
+| API Gateway | 4000 | 统一网关 | `http://localhost:4000/health` |
+| News API | 4001 | 新闻 CRUD | `http://localhost:4001/health` |
+| User API | 4002 | 用户认证 | `http://localhost:4002/health` |
+| Admin API | 4003 | 管理后台 | `http://localhost:4003/health` |
+| RSS Fetcher | 4004 | RSS 抓取（内部） | Docker 容器状态 |
+| API Fetcher | 4005 | API 抓取（内部） | Docker 容器状态 |
+| Scheduler | 4006 | 定时任务（内部） | Docker 容器状态 |
+| Content Fetcher | 4007 | 内容抓取 | `http://localhost:4007/health` |
+| AI Analysis | 4008 | AI 分析 | `http://localhost:4008/health` |
+| Health Monitor | 4009 | 健康监控 | `http://localhost:4009/health` |
+| HTML Fetcher | 4010 | HTML 页面抓取 | `http://localhost:4010/health` |
 
 ### 数据存储
 - **PostgreSQL** - 主数据库
@@ -121,21 +125,104 @@ NEXT_PUBLIC_API_URL=http://localhost:4000
 
 ```
 news-app/
-├── frontend/           # Next.js 前端
-│   ├── app/           # 页面路由
-│   ├── components/    # 组件
-│   └── lib/           # 工具函数
-├── services/          # 后端微服务
-│   ├── api-gateway/   # API 网关
-│   ├── news-api/      # 新闻 API
-│   ├── user-api/      # 用户 API
-│   ├── admin-api/     # 管理 API
-│   ├── rss-fetcher/   # RSS 抓取
-│   ├── api-fetcher/   # API 抓取
-│   ├── auth-service/  # 认证服务
-│   ├── scheduler/     # 定时任务
-│   └── ai-analysis/   # AI 分析
-└── docker-compose.yml # Docker 配置
+├── frontend/              # Next.js 前端
+│   ├── app/              # 页面路由
+│   ├── components/       # 组件
+│   └── lib/              # 工具函数
+├── services/             # 后端微服务
+│   ├── api-gateway/      # API 网关 (4000)
+│   ├── news-api/         # 新闻 API (4001)
+│   ├── user-api/         # 用户 API (4002)
+│   ├── admin-api/        # 管理 API (4003)
+│   ├── rss-fetcher/      # RSS 抓取 (4004)
+│   ├── api-fetcher/      # API 抓取 (4005)
+│   ├── scheduler/        # 定时任务 (4006)
+│   ├── content-fetcher/  # 内容抓取 (4007)
+│   ├── ai-analysis/      # AI 分析 (4008)
+│   ├── health-monitor/   # 健康监控 (4009)
+│   └── html-fetcher/     # HTML 抓取 (4010)
+├── scripts/              # 运维脚本
+│   ├── smoke-test.sh     # 部署冒烟测试
+│   └── health-check.sh   # 快速健康检查
+├── docs/                 # 项目文档
+├── docker-compose.yml    # Docker 配置
+├── docker-compose.prod.yml
+└── package.json          # 根级脚本入口
+```
+
+## 🧪 测试
+
+### Run all tests
+
+```bash
+# Run tests for a specific service
+cd services/news-api && npm test
+cd services/user-api && npm test
+
+# Deployment smoke test
+./scripts/smoke-test.sh
+
+# Quick health check
+./scripts/health-check.sh
+```
+
+### Root-level test scripts
+
+```bash
+# Run individual service tests
+npm run test:news-api
+npm run test:user-api
+npm run test:admin-api
+npm run test:gateway
+npm run test:ai-analysis
+npm run test:rss-fetcher
+npm run test:api-fetcher
+npm run test:html-fetcher
+npm run test:content-fetcher
+
+# Run all service tests
+npm run test:all
+
+# Deployment verification
+npm run test:smoke
+npm run test:health
+```
+
+### Test Coverage
+
+Each service has its own test suite with Jest:
+- **news-api**: Unit tests (utils, algorithms) + Integration tests (routes)
+- **user-api**: Auth + User management tests
+- **admin-api**: Admin panel route tests
+- **api-gateway**: Middleware + proxy tests
+- **ai-analysis**: AI client + analysis tests
+- **fetchers**: RSS/API/HTML/Content parsing tests
+
+详细测试指南请参阅 [docs/TESTING.md](docs/TESTING.md)。
+
+## 🏥 健康监控
+
+### Smoke Test（冒烟测试）
+
+完整的部署验证脚本，检查所有服务健康状态和关键业务流程：
+
+```bash
+./scripts/smoke-test.sh
+```
+
+检查内容包括：
+- 所有 12 个服务（含 Docker 容器）的健康状态
+- API Gateway 健康端点返回有效 JSON
+- 新闻列表接口正常返回数据
+- 前端页面正常加载 HTML
+- PostgreSQL 和 Redis 基础连接
+
+### Quick Health Check（快速健康检查）
+
+轻量级端口检测，输出服务状态表格：
+
+```bash
+./scripts/health-check.sh
 ```
 
 ## 🤖 AI 功能

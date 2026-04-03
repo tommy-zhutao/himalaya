@@ -177,11 +177,33 @@ services:
       PORT: 4008
       DATABASE_URL: postgresql://news_admin:news_password@postgres:5432/news_app
       REDIS_URL: redis://redis:6379
+      ZHIPU_API_KEY: 781764a7-b3dc-4a4f-83bf-f4414b39f09b
+      ZHIPU_BASE_URL: https://ark.cn-beijing.volces.com/api/v3
+      ZHIPU_MODEL: glm-4-7-251222
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
+
+  html-fetcher:
+    build:
+      context: ./services/html-fetcher
+      dockerfile: Dockerfile
+    container_name: news-app-html-fetcher
+    ports:
+      - "4010:4010"
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://news_admin:news_password@postgres:5432/news_app
+      AI_ANALYSIS_URL: http://ai-analysis:4008
+      CRON_SCHEDULE: "0 */2 * * *"
+      FETCH_ON_STARTUP: "false"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ai-analysis:
+        condition: service_started
 
   frontend:
     build:
@@ -195,6 +217,30 @@ services:
       NEXT_PUBLIC_API_URL: http://api-gateway:4000
     depends_on:
       - api-gateway
+
+  health-monitor:
+    build:
+      context: ./services/health-monitor
+      dockerfile: Dockerfile
+    container_name: news-app-health-monitor
+    ports:
+      - "4009:4009"
+    environment:
+      NODE_ENV: development
+      PORT: 4009
+      DATABASE_URL: postgresql://news_admin:news_password@postgres:5432/news_app
+      REDIS_URL: redis://redis:6379
+      CHECK_INTERVAL: "*/30 * * * * *"
+      ALERT_COOLDOWN: "300000"
+      OPENCLAW_GATEWAY_URL: http://host.docker.internal:4567
+      ALERT_FEISHU_USER: ou_f1e9bcb43a4a8cec7eaeda251f53479e
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
 volumes:
   postgres_data:

@@ -1,0 +1,20 @@
+{
+  "name": "ai-news-hub",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AI-powered news aggregation platform with microservice architecture",
+  "scripts": {
+    "test:news-api": "cd services/news-api && npm test",
+    "test:user-api": "cd services/user-api && npm test",
+    "test:admin-api": "cd services/admin-api && npm test",
+    "test:gateway": "cd services/api-gateway && npm test",
+    "test:ai-analysis": "cd services/ai-analysis && npm test",
+    "test:rss-fetcher": "cd services/rss-fetcher && npm test",
+    "test:api-fetcher": "cd services/api-fetcher && npm test",
+    "test:html-fetcher": "cd services/html-fetcher && npm test",
+    "test:content-fetcher": "cd services/content-fetcher && npm test",
+    "test:all": "echo 'Running all service tests...' && npm run test:news-api && npm run test:user-api && npm run test:admin-api && npm run test:gateway && npm run test:ai-analysis",
+    "test:smoke": "bash scripts/smoke-test.sh",
+    "test:health": "bash scripts/health-check.sh"
+  }
+}

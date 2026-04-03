@@ -1,424 +1,301 @@
-# 测试指南
+# AI News Hub — 测试指南
 
 ## 概述
 
-本文档描述 AI News Hub 的测试策略和测试方法。
+AI News Hub 采用微服务架构，每个服务拥有独立的测试套件。测试框架为 **Jest**（后端）和 **Vitest**（前端）。
 
-## 测试类型
+### 测试架构图
 
-### 1. 单元测试
-测试独立的函数和模块
+```
+┌─────────────────────────────────────────────────┐
+│                 Test Layers                       │
+├───────────────┬──────────────┬───────────────────┤
+│  Unit Tests   │  Integration │    E2E / Smoke    │
+│  (per-service)│  Tests       │    Tests           │
+│               │  (per-service│                    │
+│  - utils      │  - routes    │  - smoke-test.sh   │
+│  - algorithms │  - middleware│  - health-check.sh │
+│  - parsers    │  - DB access │  - Playwright      │
+└───────────────┴──────────────┴───────────────────┘
+```
 
-### 2. 集成测试
-测试服务之间的交互
+## Mock 策略
 
-### 3. 端到端测试（E2E）
-测试完整的用户流程
+测试中需要 mock 的外部依赖：
 
-### 4. API 测试
-测试 REST API 端点
+| 依赖 | Mock 方式 | 说明 |
+|------|----------|------|
+| **Prisma (PostgreSQL)** | `jest.mock('@/lib/prisma')` | 使用 mock 对象模拟数据库操作，不连接真实数据库 |
+| **Redis** | `jest.mock('ioredis')` | mock 所有 Redis 操作 |
+| **智谱 AI API** | `jest.mock('@/lib/zhipu-client')` | mock 外部 AI 调用，返回固定响应 |
+| **外部 HTTP 请求** | `nock` 或 `jest.mock('axios')` | mock RSS/API 抓取的外部请求 |
+| **JWT** | 真实签名验证 | 使用测试密钥进行真实 JWT 签发和验证 |
 
-## 测试框架
+### 什么用 Mock，什么用真实
 
-| 类型 | 框架 | 用途 |
-|------|------|------|
-| 单元/集成 | Jest | 后端服务测试 |
-| 单元 | Vitest | 前端组件测试 |
-| E2E | Playwright | 用户流程测试 |
-| API | Postman/Newman | API 集合测试 |
+- ✅ **Mock**: 数据库、Redis、外部 API 调用、AI 服务、HTTP 请求
+- ✅ **真实**: JWT 验证、数据转换逻辑、算法计算、字符串处理、路由匹配
 
-## 后端测试
+## 各服务测试运行方式
 
-### 设置
+### 1. News API（新闻服务）
 
 ```bash
 cd services/news-api
-npm install --save-dev jest @types/jest ts-jest
+npm test                 # 运行所有测试
+npm test -- --watch      # 监听模式
+npm test -- --coverage   # 带覆盖率报告
 ```
 
-### Jest 配置
+测试覆盖：
+- `src/lib/utils.test.ts` — 相似度计算、关键词提取、分页等工具函数
+- `src/routes/news.routes.test.ts` — 新闻列表、详情、搜索、推荐 API
+- `src/routes/news-rss.routes.test.ts` — RSS 抓取相关接口
 
-创建 `jest.config.js`:
-```javascript
-module.exports = {
-  preset: 'ts-jest',
-  testEnvironment: 'node',
-  roots: ['<rootDir>/src'],
-  testMatch: ['**/__tests__/**/*.ts', '**/*.test.ts'],
-  collectCoverageFrom: [
-    'src/**/*.ts',
-    '!src/**/*.d.ts',
-  ],
-  coverageDirectory: 'coverage',
-};
+### 2. User API（用户服务）
+
+```bash
+cd services/user-api
+npm test
 ```
 
-### 测试示例
+测试覆盖：
+- 注册 / 登录流程
+- JWT 签发和验证
+- 用户信息 CRUD
+- 收藏管理
+- 密码修改
 
-**单元测试示例** (`src/lib/utils.test.ts`):
+### 3. Admin API（管理服务）
+
+```bash
+cd services/admin-api
+npm test
+```
+
+测试覆盖：
+- 管理员权限验证
+- 仪表盘统计数据
+- 新闻源 CRUD
+- 用户管理（启用/禁用）
+- 抓取日志查询
+
+### 4. API Gateway（网关）
+
+```bash
+cd services/api-gateway
+npm test
+```
+
+测试覆盖：
+- 路由代理转发
+- JWT 认证中间件
+- 请求限流
+- 错误处理
+- 请求日志
+
+### 5. AI Analysis（AI 分析服务）
+
+```bash
+cd services/ai-analysis
+npm test
+```
+
+测试覆盖：
+- 智谱 API 客户端（mock 调用）
+- 摘要生成逻辑
+- 关键词提取
+- 情感分析
+- 质量评分
+
+### 6. Fetchers（抓取服务）
+
+```bash
+cd services/rss-fetcher && npm test
+cd services/api-fetcher && npm test
+cd services/html-fetcher && npm test
+cd services/content-fetcher && npm test
+```
+
+测试覆盖：
+- RSS/Atom XML 解析
+- JSON API 响应解析
+- HTML 页面内容提取
+- 反爬虫处理
+- 去重逻辑
+- 错误重试
+
+## 根级测试脚本
+
+项目根目录 `package.json` 提供了统一的测试入口：
+
+```bash
+# 单个服务
+npm run test:news-api
+npm run test:user-api
+npm run test:admin-api
+npm run test:gateway
+npm run test:ai-analysis
+npm run test:rss-fetcher
+npm run test:api-fetcher
+npm run test:html-fetcher
+npm run test:content-fetcher
+
+# 所有服务
+npm run test:all
+
+# 部署验证
+npm run test:smoke    # 等同于 ./scripts/smoke-test.sh
+npm run test:health   # 等同于 ./scripts/health-check.sh
+```
+
+## 添加新测试（Step by Step）
+
+### 1. 单元测试
+
+```bash
+# 假设要测试 services/news-api/src/lib/score.ts
+cd services/news-api
+```
+
+创建测试文件 `src/lib/score.test.ts`：
+
 ```typescript
-import { calculateSimilarity, extractKeywords } from './utils';
+import { calculateScore } from './score';
 
-describe('Utils', () => {
-  describe('calculateSimilarity', () => {
-    it('should return 1 for identical arrays', () => {
-      const arr1 = ['a', 'b', 'c'];
-      const arr2 = ['a', 'b', 'c'];
-      expect(calculateSimilarity(arr1, arr2)).toBe(1);
-    });
-
-    it('should return 0 for disjoint arrays', () => {
-      const arr1 = ['a', 'b'];
-      const arr2 = ['c', 'd'];
-      expect(calculateSimilarity(arr1, arr2)).toBe(0);
-    });
+describe('calculateScore', () => {
+  it('should return 0 for empty keywords', () => {
+    expect(calculateScore([], ['AI'])).toBe(0);
   });
 
-  describe('extractKeywords', () => {
-    it('should extract keywords from text', () => {
-      const text = 'AI and machine learning are transforming technology';
-      const keywords = extractKeywords(text);
-      expect(keywords).toContain('AI');
-      expect(keywords).toContain('machine learning');
-    });
+  it('should return correct score for matching keywords', () => {
+    const score = calculateScore(['AI', 'tech'], ['AI', 'news']);
+    expect(score).toBeGreaterThan(0);
+  });
+
+  it('should handle null input gracefully', () => {
+    expect(calculateScore(null, ['AI'])).toBe(0);
   });
 });
 ```
 
-**API 路由测试** (`src/routes/news.routes.test.ts`):
+### 2. API 集成测试
+
+创建 `src/routes/example.routes.test.ts`：
+
 ```typescript
 import request from 'supertest';
-import app from '../index';
+import { app } from '../index';
 
-describe('News API', () => {
-  describe('GET /api/news', () => {
-    it('should return paginated news list', async () => {
-      const response = await request(app)
-        .get('/api/news?page=1&limit=10')
-        .expect('Content-Type', /json/)
-        .expect(200);
+// Mock Prisma
+jest.mock('@/lib/prisma', () => ({
+  news: {
+    findMany: jest.fn().mockResolvedValue([]),
+    count: jest.fn().mockResolvedValue(0),
+  },
+}));
 
-      expect(response.body.success).toBe(true);
-      expect(response.body.data.news).toBeInstanceOf(Array);
-      expect(response.body.data.pagination).toBeDefined();
-    });
+describe('GET /api/example', () => {
+  it('should return 200 with data', async () => {
+    const res = await request(app)
+      .get('/api/example')
+      .expect('Content-Type', /json/)
+      .expect(200);
+
+    expect(res.body.success).toBe(true);
   });
 
-  describe('GET /api/news/:id', () => {
-    it('should return news detail', async () => {
-      const response = await request(app)
-        .get('/api/news/clx123456')
-        .expect(200);
-
-      expect(response.body.data.id).toBe('clx123456');
-      expect(response.body.data.title).toBeDefined();
-    });
-
-    it('should return 404 for non-existent news', async () => {
-      await request(app)
-        .get('/api/news/non-existent-id')
-        .expect(404);
-    });
+  it('should return 401 without auth token', async () => {
+    await request(app)
+      .get('/api/example/protected')
+      .expect(401);
   });
 });
 ```
 
-### 运行测试
+### 3. Mock 外部 API
+
+```typescript
+import nock from 'nock';
+
+beforeAll(() => {
+  nock('https://api.example.com')
+    .get('/news')
+    .reply(200, { articles: [{ title: 'Test' }] });
+});
+
+afterAll(() => {
+  nock.cleanAll();
+});
+```
+
+## 覆盖率
+
+### 生成覆盖率报告
 
 ```bash
-# 运行所有测试
-npm test
-
-# 运行特定测试文件
-npm test -- news.routes.test.ts
-
-# 带覆盖率
+cd services/<service-name>
 npm test -- --coverage
-
-# 监听模式
-npm test -- --watch
 ```
 
-## 前端测试
+报告输出在 `coverage/` 目录，打开 `coverage/lcov-report/index.html` 查看详情。
 
-### Vitest 配置
+### 覆盖率目标
 
-创建 `vitest.config.ts`:
-```typescript
-import { defineConfig } from 'vitest/config';
-import react from '@vitejs/plugin-react';
+| 服务类型 | 目标行覆盖率 |
+|---------|------------|
+| 核心服务 (news-api, user-api) | ≥ 80% |
+| 工具服务 (fetchers) | ≥ 70% |
+| AI 服务 (ai-analysis) | ≥ 60% |
+| 网关 (api-gateway) | ≥ 75% |
 
-export default defineConfig({
-  plugins: [react()],
-  test: {
-    environment: 'jsdom',
-    globals: true,
-    setupFiles: './test/setup.ts',
-  },
-});
-```
+## 部署验证测试
 
-### 组件测试示例
+### Smoke Test (`scripts/smoke-test.sh`)
 
-```typescript
-// components/NewsCard.test.tsx
-import { render, screen } from '@testing-library/react';
-import { describe, it, expect } from 'vitest';
-import NewsCard from './NewsCard';
-
-describe('NewsCard', () => {
-  const mockNews = {
-    id: '1',
-    title: 'Test News',
-    summary: 'Test summary',
-    source: { name: 'Test Source' },
-    publishedAt: '2024-03-15T10:00:00Z',
-  };
-
-  it('should render news title', () => {
-    render(<NewsCard news={mockNews} />);
-    expect(screen.getByText('Test News')).toBeDefined();
-  });
-
-  it('should display source name', () => {
-    render(<NewsCard news={mockNews} />);
-    expect(screen.getByText('Test Source')).toBeDefined();
-  });
-});
-```
-
-### 运行前端测试
+冒烟测试在部署后运行，验证所有服务正常：
 
 ```bash
-cd frontend
-npm test
+./scripts/smoke-test.sh
 ```
 
-## E2E 测试
+检查项：
+1. 12 个服务健康状态（HTTP 端口或 Docker 容器）
+2. API Gateway `/health` 返回有效 JSON
+3. `/api/news` 返回新闻数据
+4. 前端返回 HTML 页面
+5. PostgreSQL 和 Redis 连接
 
-### Playwright 配置
+### Health Check (`scripts/health-check.sh`)
 
-创建 `playwright.config.ts`:
-```typescript
-import { defineConfig, devices } from '@playwright/test';
-
-export default defineConfig({
-  testDir: './e2e',
-  fullyParallel: true,
-  use: {
-    baseURL: 'http://localhost:3000',
-    trace: 'on-first-retry',
-  },
-  projects: [
-    {
-      name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
-    },
-  ],
-  webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:3000',
-    reuseExistingServer: true,
-  },
-});
-```
-
-### E2E 测试示例
-
-```typescript
-// e2e/news.spec.ts
-import { test, expect } from '@playwright/test';
-
-test.describe('News Flow', () => {
-  test('should display news list on homepage', async ({ page }) => {
-    await page.goto('/');
-    await expect(page.locator('[data-testid="news-list"]')).toBeVisible();
-  });
-
-  test('should search for news', async ({ page }) => {
-    await page.goto('/');
-    await page.fill('[data-testid="search-input"]', 'AI');
-    await page.press('[data-testid="search-input"]', 'Enter');
-    await expect(page).toHaveURL(/.*search\?q=AI/);
-  });
-
-  test('should view news detail', async ({ page }) => {
-    await page.goto('/');
-    await page.click('[data-testid="news-card"]:first-child');
-    await expect(page.locator('[data-testid="news-detail"]')).toBeVisible();
-  });
-
-  test('should login and view favorites', async ({ page }) => {
-    await page.goto('/login');
-    await page.fill('[name="email"]', 'test@example.com');
-    await page.fill('[name="password"]', 'password123');
-    await page.click('[type="submit"]');
-    await expect(page).toHaveURL('/');
-    
-    await page.goto('/favorites');
-    await expect(page.locator('[data-testid="favorites-list"]')).toBeVisible();
-  });
-});
-```
-
-### 运行 E2E 测试
+快速检查所有暴露端口的服务状态：
 
 ```bash
-# 安装浏览器
-npx playwright install
-
-# 运行测试
-npx playwright test
-
-# UI 模式
-npx playwright test --ui
+./scripts/health-check.sh
 ```
 
-## API 测试集合
+## 常见问题
 
-### Postman 集合
+### Q: 测试报 `ECONNREFUSED` 错误
+A: 单元测试不应该连接真实数据库或 Redis。检查是否忘记 mock Prisma 或 ioredis。
 
-导入 `postman_collection.json` 测试所有 API 端点。
+### Q: Jest 找不到 TypeScript 文件
+A: 确保已安装 `ts-jest` 和 `@types/jest`，并且 `jest.config.js` 使用 `preset: 'ts-jest'`。
 
-### 使用 Newman CLI
+### Q: 测试数据库需要单独配置吗？
+A: 不需要。单元/集成测试全部使用 mock，不连接数据库。如果需要真实数据库测试，在 CI 环境中使用 Docker 启动测试数据库。
 
+### Q: 如何调试单个测试？
 ```bash
-# 安装 Newman
-npm install -g newman
-
-# 运行集合
-newman run postman_collection.json -e postman_environment.json
-```
-
-## 测试覆盖率目标
-
-| 类型 | 目标覆盖率 |
-|------|-----------|
-| 单元测试 | 80% |
-| 集成测试 | 70% |
-| E2E 测试 | 关键流程 100% |
-
-## CI/CD 集成
-
-### GitHub Actions 示例
-
-```yaml
-name: Test
-
-on: [push, pull_request]
-
-jobs:
-  test:
-    runs-on: ubuntu-latest
-    
-    services:
-      postgres:
-        image: postgres:14
-        env:
-          POSTGRES_PASSWORD: postgres
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-    
-    steps:
-      - uses: actions/checkout@v4
-      
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-      
-      - name: Install dependencies
-        run: npm ci
-      
-      - name: Run unit tests
-        run: npm test
-      
-      - name: Run E2E tests
-        run: npx playwright test
-      
-      - name: Upload coverage
-        uses: codecov/codecov-action@v3
-```
-
-## 测试脚本
-
-```bash
-# scripts/test.sh
-#!/bin/bash
-
-echo "Running backend tests..."
-cd services/news-api && npm test
-cd ../..
-
-echo "Running frontend tests..."
-cd frontend && npm test
-cd ..
-
-echo "Running E2E tests..."
-npx playwright test
-
-echo "All tests completed!"
-```
-
-## 测试数据
-
-### 数据库种子
-
-创建测试数据：
-```typescript
-// prisma/seed.ts
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
-
-async function main() {
-  // 创建测试用户
-  await prisma.user.create({
-    data: {
-      email: 'test@example.com',
-      username: 'testuser',
-      password: 'hashed_password',
-    },
-  });
-
-  // 创建测试新闻源
-  await prisma.source.create({
-    data: {
-      name: 'Test Source',
-      type: 'rss',
-      url: 'https://test.com/rss',
-    },
-  });
-
-  // 创建测试新闻
-  // ...
-}
-
-main();
-```
-
-### Mock 数据
-
-```typescript
-// test/mocks/news.ts
-export const mockNews = {
-  id: 'clx123',
-  title: 'Test News Title',
-  content: 'Test content...',
-  summary: 'AI generated summary',
-  keywords: ['AI', 'technology'],
-  sentiment: 'positive',
-  qualityScore: 85,
-  sourceId: 'src123',
-  publishedAt: new Date('2024-03-15'),
-};
+cd services/news-api
+npx jest --runInBand --verbose src/lib/utils.test.ts
 ```
 
 ## 最佳实践
 
-1. **测试隔离** - 每个测试应该独立，不依赖其他测试
-2. **描述性命名** - 测试名称应清楚描述测试内容
-3. **AAA 模式** - Arrange, Act, Assert
-4. **Mock 外部依赖** - 数据库、API 调用等
-5. **测试边界情况** - 空值、错误输入、极端情况
-6. **保持测试快速** - 使用内存数据库、并行执行
+1. **测试隔离** — 每个测试独立运行，不依赖其他测试的执行顺序
+2. **AAA 模式** — Arrange（准备）→ Act（执行）→ Assert（断言）
+3. **描述性命名** — `it('should return 404 when news not found')` 而非 `it('test 1')`
+4. **Mock 外部依赖** — 数据库、Redis、AI API、HTTP 请求一律 mock
+5. **测试边界情况** — 空值、错误输入、大数据量
+6. **保持快速** — 不要在测试中sleep或做耗时操作

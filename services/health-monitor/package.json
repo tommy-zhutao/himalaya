@@ -1,0 +1,24 @@
+{
+  "name": "health-monitor",
+  "version": "1.0.0",
+  "description": "Health monitoring service for AI News Hub",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "ts-node-dev --respawn src/index.ts"
+  },
+  "dependencies": {
+    "axios": "^1.6.0",
+    "node-cron": "^3.0.3",
+    "pg": "^8.11.0",
+    "redis": "^4.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/node-cron": "^3.0.11",
+    "@types/pg": "^8.10.0",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.0.0"
+  }
+}
