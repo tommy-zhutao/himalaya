@@ -7,6 +7,7 @@ import { useAuthStore } from '@/lib/stores/authStore'
 import { getFavorites, removeFavorite, Favorite } from '@/lib/favorites'
 import { useRouter } from 'next/navigation'
 import { Trash2, Heart, Loader2, ArrowLeft } from 'lucide-react'
+import Pagination from '@/components/Pagination'
 
 export default function FavoritesPage() {
   const router = useRouter()
@@ -161,11 +162,12 @@ export default function FavoritesPage() {
         )}
 
         {pagination && pagination.totalPages > 1 && (
-          <div className="flex items-center justify-center gap-2 mt-8 pt-6 border-t border-gray-200">
-            <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">上一页</button>
-            <span className="px-4 py-2 text-sm text-gray-600">第 {page} / {pagination.totalPages} 页</span>
-            <button onClick={() => setPage((p) => Math.min(pagination.totalPages, p + 1))} disabled={page === pagination.totalPages} className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors">下一页</button>
-          </div>
+          <Pagination
+            currentPage={page}
+            totalPages={pagination.totalPages}
+            total={pagination.total}
+            onPageChange={setPage}
+          />
         )}
       </div>
     </div>

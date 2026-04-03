@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import axios from 'axios'
 import { useRouter } from 'next/navigation'
 import NewsCard from './NewsCard'
+import Pagination from './Pagination'
 
 interface NewsItem {
   id: number
@@ -69,15 +70,8 @@ export default function SearchResults({ q: query, page }: SearchPageProps) {
     retryDelay: 1000,
   })
 
-  const handlePrevPage = () => {
-    const prevPage = Math.max(1, currentPage - 1)
-    router.push(`/search?q=${encodeURIComponent(query || '')}&page=${prevPage}`)
-  }
-
-  const handleNextPage = () => {
-    if (!data?.pagination.totalPages) return
-    const nextPage = Math.min(data.pagination.totalPages, currentPage + 1)
-    router.push(`/search?q=${encodeURIComponent(query || '')}&page=${nextPage}`)
+  const handlePageChange = (targetPage: number) => {
+    router.push(`/search?q=${encodeURIComponent(query || '')}&page=${targetPage}`)
   }
 
   return (
@@ -164,38 +158,12 @@ export default function SearchResults({ q: query, page }: SearchPageProps) {
           </div>
 
           {/* Pagination */}
-          {data?.pagination && data.pagination.totalPages > 1 && (
-            <div className="flex items-center justify-center mt-6 pt-4 border-t border-gray-200">
-              <nav className="flex items-center gap-2">
-                {/* Previous Page */}
-                {data.pagination.hasPrev && (
-                  <button
-                    onClick={handlePrevPage}
-                    disabled={isLoading}
-                    className="px-4 py-2 text-blue-600 hover:bg-blue-50 disabled:bg-gray-100 disabled:text-gray-400 rounded-lg transition-colors"
-                  >
-                    上一页
-                  </button>
-                )}
-
-                {/* Page Info */}
-                <span className="text-sm text-gray-600 px-2">
-                  第 {currentPage} / {data.pagination.totalPages} 页
-                </span>
-
-                {/* Next Page */}
-                {data.pagination.hasNext && (
-                  <button
-                    onClick={handleNextPage}
-                    disabled={isLoading}
-                    className="px-4 py-2 text-blue-600 hover:bg-blue-50 disabled:bg-gray-100 disabled:text-gray-400 rounded-lg transition-colors"
-                  >
-                    下一页
-                  </button>
-                )}
-              </nav>
-            </div>
-          )}
+          <Pagination
+            currentPage={currentPage}
+            totalPages={data.pagination.totalPages}
+            total={data.pagination.total}
+            onPageChange={handlePageChange}
+          />
         </div>
       )}
     </div>

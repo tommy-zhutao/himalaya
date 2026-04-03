@@ -1,5 +1,9 @@
+'use client'
+
+import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import NewsCard from './NewsCard'
+import Pagination from './Pagination'
 import { getNews, NewsListResponse } from '@/lib/news'
 
 interface News {
@@ -31,6 +35,18 @@ interface NewsListProps {
 }
 
 export default function NewsList({ category, sourceId, sort = 'latest', refreshKey }: NewsListProps) {
+  const [page, setPage] = useState(1)
+
+  // Reset page when filters change
+  useEffect(() => {
+    setPage(1)
+  }, [category, sort, sourceId])
+
+  // Scroll to top when page changes
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }, [page])
+
   // Fetch news - 把 refreshKey 加入 queryKey，这样刷新时会重新请求
   const {
     data,
@@ -39,8 +55,8 @@ export default function NewsList({ category, sourceId, sort = 'latest', refreshK
     error,
     refetch,
   } = useQuery<NewsListResponse>({
-    queryKey: ['news', category, sourceId, sort, refreshKey],
-    queryFn: () => getNews({ page: 1, limit: 20, category, sourceId, sort }),
+    queryKey: ['news', category, sourceId, sort, page, refreshKey],
+    queryFn: () => getNews({ page, limit: 20, category, sourceId, sort }),
     refetchOnWindowFocus: false,
   })
 
@@ -132,16 +148,13 @@ export default function NewsList({ category, sourceId, sort = 'latest', refreshK
         ))}
       </div>
 
-      {/* Pagination Info */}
-      <div className="flex items-center justify-center pt-4 border-t border-gray-200">
-        <div className="flex items-center gap-2 text-sm text-gray-600">
-          <span>
-            第 {pagination.page} / {pagination.totalPages} 页
-          </span>
-          <span>·</span>
-          <span>每页 {pagination.limit} 条</span>
-        </div>
-      </div>
+      {/* Pagination */}
+      <Pagination
+        currentPage={pagination.page}
+        totalPages={pagination.totalPages}
+        total={pagination.total}
+        onPageChange={setPage}
+      />
     </div>
   )
 }

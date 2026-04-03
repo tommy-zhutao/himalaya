@@ -1,9 +1,11 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import axios from 'axios'
 import { useParams } from 'next/navigation'
 import NewsCard from '@/components/NewsCard'
+import Pagination from '@/components/Pagination'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 
@@ -52,12 +54,18 @@ export default function CategoryPage() {
   const params = useParams()
   const slug = params?.slug as string
   const categoryName = CATEGORY_NAMES[slug] || slug
+  const [page, setPage] = useState(1)
+
+  // Scroll to top when page changes
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }, [page])
 
   const { data, isLoading, error } = useQuery<NewsResponse>({
-    queryKey: ['category', slug],
+    queryKey: ['category', slug, page],
     queryFn: async () => {
       const response = await axios.get<NewsResponse>('/api/news', {
-        params: { category: slug, limit: 20 },
+        params: { category: slug, limit: 20, page },
       })
       return response.data
     },
@@ -131,21 +139,31 @@ export default function CategoryPage() {
 
         {/* News Grid */}
         {!isLoading && !error && data?.data && data.data.length > 0 && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {data.data.map((newsItem) => (
-              <NewsCard
-                key={newsItem.id}
-                id={newsItem.id}
-                title={newsItem.title}
-                summary={newsItem.summary}
-                author={newsItem.author}
-                source={newsItem.source}
-                publishedAt={newsItem.publishedAt}
-                imageUrl={newsItem.imageUrl}
-                category={newsItem.category}
-                tags={newsItem.tags}
-              />
-            ))}
+          <div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {data.data.map((newsItem) => (
+                <NewsCard
+                  key={newsItem.id}
+                  id={newsItem.id}
+                  title={newsItem.title}
+                  summary={newsItem.summary}
+                  author={newsItem.author}
+                  source={newsItem.source}
+                  publishedAt={newsItem.publishedAt}
+                  imageUrl={newsItem.imageUrl}
+                  category={newsItem.category}
+                  tags={newsItem.tags}
+                />
+              ))}
+            </div>
+
+            {/* Pagination */}
+            <Pagination
+              currentPage={data.pagination.page}
+              totalPages={data.pagination.totalPages}
+              total={data.pagination.total}
+              onPageChange={setPage}
+            />
           </div>
         )}
       </main>
